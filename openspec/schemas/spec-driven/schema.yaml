@@ -1,0 +1,81 @@
+name: spec-driven
+version: 1
+description: Flujo de trabajo OPSX — Sistema de Control de Entregas (FastAPI + PostgreSQL + React)
+
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    template: proposal.md
+    description: Propuesta inicial de cambio Fullstack
+    instruction: |
+      Crear una propuesta que justifique el cambio desde la necesidad de negocio.
+      Reglas de calidad obligatorias:
+      - Aplicar YAGNI: el alcance solo incluye lo estrictamente necesario para resolver el problema descrito.
+      - Aplicar SRP: cada sección cubre una única responsabilidad (problema, alcance, impacto, riesgo).
+      - El impacto en el modelo de datos (tablas PostgreSQL) DEBE describirse antes que el impacto en la UI (DIP).
+      - El criterio de aborto DEBE ser una condición técnica verificable, no una apreciación subjetiva.
+      - Prohibido incluir colores hardcodeados o credenciales en el código.
+      - Todo cambio en tablas DEBE contemplar la migración Alembic correspondiente.
+      - Verificar que el cambio no viola las invariantes del Kardex FIFO ni la cadena de trazabilidad.
+    requires: []
+
+  - id: specs
+    generates: specs/**/*.md
+    template: specs.md
+    description: Especificaciones funcionales BDD (Contrato de Interacción)
+    instruction: |
+      Definir los comportamientos esperados del sistema mediante escenarios BDD.
+      Reglas de calidad obligatorias:
+      - Aplicar SRP: cada escenario valida exactamente UNA condición. Sin escenarios combinados.
+      - Aplicar DRY: verificar los specs base del dominio; no duplicar escenarios que ya existan.
+      - Los escenarios de éxito y de error son obligatorios para cada requisito.
+      - Los escenarios de error DEBEN especificar el código HTTP (422, 401, 404, 409) y el feedback visual.
+      - Nombrar escenarios de forma descriptiva usando el patrón: "[Actor] [acción] [condición]".
+      - Los escenarios que modifican Kardex DEBEN verificar saldo post-operación.
+      - Los escenarios de soft delete DEBEN verificar reversión de efectos (Kardex, saldos, pagos).
+      - Los escenarios de XML DEBEN validar: formato SRI 2.x, clave_acceso única, ambiente=2.
+    requires: [proposal]
+
+  - id: design
+    generates: design.md
+    template: design.md
+    description: Diseño técnico de Datos, API y Componentes UI
+    instruction: |
+      Diseñar la solución fullstack en capas separadas y explícitas.
+      Reglas de calidad obligatorias:
+      - Aplicar DIP: diseñar la Capa de Datos primero. Las capas superiores dependen de
+        las abstracciones definidas aquí, nunca al revés.
+      - Aplicar SRP: cada sección (Datos, API, UI) DEBE documentarse de forma independiente.
+        Prohibido mezclar responsabilidades entre secciones.
+      - Aplicar DRY: toda lógica compartida entre features DEBE ubicarse en `src/shared/`.
+      - Aplicar ISP: componentes de dominio en `features/`; componentes visuales reutilizables
+        en `@/components/custom/`. Nunca mezclar.
+      - Aplicar YAGNI: justificar toda abstracción nueva con al menos dos casos de uso concretos.
+      - Aplicar KISS: preferir la solución más simple que cumpla el contrato definido en los specs.
+      - El Diccionario de Datos DEBE completarse antes de diseñar cualquier componente de UI.
+      - Los modelos SQLAlchemy DEBEN heredar de AuditMixin.
+      - Toda migración Alembic DEBE ser reversible.
+    requires: [proposal]
+
+  - id: tasks
+    generates: tasks.md
+    template: tasks.md
+    description: Plan de implementación sincronizado Backend + Frontend
+    instruction: |
+      Generar un checklist de tareas ordenadas y verificables.
+      Reglas de calidad obligatorias:
+      - El orden de fases es obligatorio: Contratos → Migraciones → Backend → Frontend → Seguridad → Pruebas.
+        No se pasa a la siguiente fase hasta completar la anterior.
+      - Aplicar SRP: cada tarea DEBE referenciar el archivo o módulo exacto a modificar.
+        Prohibido tareas genéricas como "refactorizar el módulo de auth".
+      - Aplicar DRY: si una tarea de Backend y Frontend comparten un paso idéntico,
+        extraerlo a una tarea global compartida (Sección 0 o equivalente).
+      - Aplicar KISS: cada tarea DEBE ser completable en una única sesión de trabajo.
+      - Cada tarea de Backend incluye: Pydantic Schema → Modelo SQLAlchemy → Migración Alembic → Servicio → Router → Prueba.
+      - Cada tarea de Frontend incluye: Zod Schema → Hook → Componente → Prueba.
+      - Las tareas de seguridad (Sección 4) son no negociables y no pueden eliminarse.
+    requires: [specs, design]
+
+apply:
+  requires: [tasks]
+  tracks: tasks.md

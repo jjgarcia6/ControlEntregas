@@ -1,0 +1,116 @@
+schema: spec-driven
+
+context: |
+  # Contexto Global del Proyecto — Sistema de Control de Entregas
+
+  ## Dominio de Negocio
+  - Sistema web para control de entregas de productos a partir de facturas electrónicas SRI (XML).
+  - Flujo principal: XML SRI → Kardex FIFO → Entregas → Pagos.
+  - Trazabilidad bidireccional obligatoria: XML ↔ Entrega ↔ Pago.
+  - Soft delete en todos los documentos con reversión automática de efectos.
+  - Auditoría completa (audit_log inmutable) de todas las operaciones.
+
+  ## Arquitectura
+  - Monorepo estructurado en `backend/` (FastAPI) y `frontend/` (React).
+  - Contrato Inter-App: El Backend ES la fuente de verdad (OpenAPI/Pydantic). El Frontend DEBE espejar
+    los tipos usando TypeScript/Zod. Nunca al revés.
+
+  ## Convenciones de Lenguaje
+  - Documentación y lógica de negocio: Español.
+  - Términos técnicos, rutas de API y código fuente: Inglés.
+  - Estándar de requisitos: RFC 2119 (DEBE, NO DEBE, DEBERÍA, PUEDE).
+
+  ## Stack Backend (Python 3.12)
+  - Framework: FastAPI + Uvicorn.
+  - Base de datos: PostgreSQL en Supabase (solo como PostgreSQL hosteado, sin Auth/Realtime/RLS).
+  - ORM: SQLAlchemy 2.x (async) con Motor async (asyncpg driver).
+  - Migraciones: Alembic con autogenerate.
+  - Validación: Pydantic v2 en Strict Mode.
+  - Autenticación: JWT (python-jose) + bcrypt. Control de acceso por roles (admin, operador, lectura).
+  - Reportes PDF: WeasyPrint.
+  - Reportes XLSX: openpyxl.
+  - Testing: Pytest + HTTPX (async).
+  - Hosting: Google Cloud Run (escala a cero).
+  - Secretos: GCP Secret Manager.
+
+  ## Stack Frontend (Vite + React)
+  - Framework: React + Vite + TypeScript en Strict Mode + Node 22.
+  - Routing: React Router v7.
+  - Estado servidor: React Query (TanStack Query).
+  - Estado global: Zustand (solo sesión y UI).
+  - Formularios: React Hook Form + Zod resolver.
+  - UI Kit: Tailwind CSS v4 + shadcn/ui + Lucide React.
+  - Arquitectura UI: Feature-Driven. Cada feature vive en `src/features/[feature-name]/`
+    con su propia carpeta de `components/`, `hooks/` y `types/`.
+  - Testing: Vitest + React Testing Library.
+  - Hosting: Firebase Hosting.
+
+  ## Reglas de Negocio Críticas (Invariantes del Sistema)
+  - Kardex FIFO: saldo NUNCA negativo; egresos consumen lotes más antiguos primero.
+  - Reversión de entrega: bloqueada si tiene pagos; si no tiene, reversión FIFO exacta
+    usando entrega_item_fifo_detalle.
+  - Reversión de pago: restaura saldo_pendiente de cada entrega afectada.
+  - XML: clave_acceso única; solo ambiente=2 (producción); ítems con cantidad_pendiente
+    pueden reingresarse en operaciones posteriores.
+  - Pagos: SUM(monto_aplicado) == valor_total; monto por entrega <= saldo_pendiente.
+  - Destinatarios: snapshot inmutable al crear entrega; cambios en catálogo no afectan entregas pasadas.
+  - IVA: tarifa tomada del XML, sin valores hardcodeados.
+  - Peso: calculado en backend (peso_documento / cantidad_documento); si XML no trae peso = 0.
+
+  ## Principios de Calidad de Código (No Negociables)
+  - Clean Code: Nombres descriptivos (sin abreviaturas), funciones con responsabilidad única,
+    máximo 20 líneas por función, sin comentarios que expliquen "qué" (el código lo dice),
+    solo comentarios que expliquen "por qué".
+  - DRY: Toda lógica repetida DEBE extraerse a una utilidad, hook, servicio o componente
+    compartido. Está prohibido copiar y pegar bloques de lógica.
+  - SOLID:
+    * SRP: Cada módulo, clase o función tiene UNA única razón para cambiar.
+    * OCP: El sistema DEBE diseñarse para extensión sin modificar código existente.
+    * LSP: Las subclases/implementaciones DEBEN ser sustituibles por su contrato base.
+    * ISP: Las interfaces DEBEN ser granulares; prohibido forzar dependencias no usadas.
+    * DIP: Los módulos de alto nivel NO DEBEN depender de detalles de implementación;
+      ambos DEBEN depender de abstracciones.
+  - KISS: La solución más simple que cumple el requisito es la correcta. Prohibido
+    sobre-ingenierizar.
+  - YAGNI: No se implementa funcionalidad que no esté en el alcance actual del cambio.
+
+  ## Patrones Arquitectónicos del Backend
+  - Lógica de negocio: solo en `services/`. Los routers solo reciben y delegan.
+  - FIFO: `utils/fifo.py` es función pura, sin dependencia de BD, testeable de forma aislada.
+  - Transacciones: toda operación multi-tabla usa `async with session.begin()`. Rollback total si falla.
+  - Auditoría: decorator `@auditar(accion, entidad)` en services. No se repite lógica.
+  - Soft delete: `AuditMixin.soft_delete(usuario_id)` centralizado. Todos los queries filtran
+    `is_active=True` por defecto.
+  - Validación cédula/RUC: módulo 11 en `utils/validaciones.py`.
+
+rules:
+  proposal:
+    - Verificar que el alcance no incluye refactorizaciones paralelas ajenas al dominio del cambio (YAGNI).
+    - Describir el impacto en el modelo de datos (tablas PostgreSQL) ANTES de mencionar componentes de UI (DIP).
+    - Definir el criterio de aborto con una condición verificable, no subjetiva (Clean Code).
+    - Todo cambio en tablas DEBE incluir la migración Alembic correspondiente.
+    - Verificar que las invariantes del Kardex FIFO no se violan con el cambio propuesto.
+
+  specs:
+    - Cada escenario DEBE ser atómico y verificable de forma independiente (SRP).
+    - Los escenarios de error DEBEN cubrir validación de entrada (Pydantic 422) y respuesta del backend (contrato).
+    - Prohibido duplicar escenarios que ya existan en los specs base del dominio (DRY).
+    - Los escenarios de Kardex DEBEN incluir verificación de saldo post-operación.
+    - Los escenarios de soft delete DEBEN verificar reversión de efectos (Kardex, saldos).
+
+  design:
+    - "Obligatorio: Definir el Diccionario de Datos (Pydantic + Zod) antes de diseñar componentes UI (DIP)."
+    - "Obligatorio: Cada capa (Datos, API, UI) DEBE documentarse por separado; prohibido mezclarlas (SRP)."
+    - "Los componentes de dominio van en `features/`. Los componentes puramente visuales y reutilizables en toda la app van en `@/components/custom/`. Nunca al revés (ISP)."
+    - "Las páginas en `src/pages/` son Dumb Pages: sin lógica de estado ni llamadas directas a la API. Toda la lógica asíncrona DEBE encapsularse en Custom Hooks dentro de `features/` (SRP + DIP)."
+    - Toda nueva abstracción DEBE justificarse con al menos dos casos de uso reales (YAGNI).
+    - Toda lógica compartida entre dos o más features DEBE extraerse a `src/shared/` (DRY).
+    - Los modelos SQLAlchemy DEBEN heredar de AuditMixin para campos de auditoría y soft delete.
+    - Toda migración Alembic DEBE ser reversible (upgrade + downgrade).
+
+  tasks:
+    - "Las tareas DEBEN seguir el orden: Contrato → Migraciones → Backend → Frontend → Seguridad → Pruebas. No se avanza a la siguiente fase si la anterior tiene ítems pendientes (dependencia explícita)."
+    - "Obligatorio: Incluir pasos de análisis estático (Ruff, Mypy, Bandit, ESLint) y SCA (Snyk/Trivy)."
+    - Cada tarea DEBE ser lo suficientemente pequeña para completarse en una sesión (KISS).
+    - 'Prohibido crear tareas genéricas como "refactorizar X". Cada tarea DEBE nombrar el archivo o módulo exacto que se va a modificar (Clean Code).'
+    - Cada tarea de Backend DEBE incluir la migración Alembic si altera el modelo de datos.

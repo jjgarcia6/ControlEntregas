@@ -1,0 +1,71 @@
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.config import settings
+from app.schemas.common import HealthCheckResponse
+from app.utils.exceptions import (
+    ConflictoUnicidad,
+    EliminacionBloqueada,
+    EntidadNoEncontrada,
+    PermisoInsuficiente,
+    SaldoInsuficiente,
+    ValidacionNegocio,
+)
+
+app = FastAPI(title="Control de Entregas", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.exception_handler(EntidadNoEncontrada)
+async def entidad_no_encontrada_handler(
+    request: Request, exc: EntidadNoEncontrada
+) -> JSONResponse:
+    return JSONResponse(status_code=404, content={"detail": exc.message})
+
+
+@app.exception_handler(ConflictoUnicidad)
+async def conflicto_unicidad_handler(
+    request: Request, exc: ConflictoUnicidad
+) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": exc.message})
+
+
+@app.exception_handler(ValidacionNegocio)
+async def validacion_negocio_handler(
+    request: Request, exc: ValidacionNegocio
+) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"detail": exc.message})
+
+
+@app.exception_handler(SaldoInsuficiente)
+async def saldo_insuficiente_handler(
+    request: Request, exc: SaldoInsuficiente
+) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"detail": exc.message})
+
+
+@app.exception_handler(EliminacionBloqueada)
+async def eliminacion_bloqueada_handler(
+    request: Request, exc: EliminacionBloqueada
+) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": exc.message})
+
+
+@app.exception_handler(PermisoInsuficiente)
+async def permiso_insuficiente_handler(
+    request: Request, exc: PermisoInsuficiente
+) -> JSONResponse:
+    return JSONResponse(status_code=403, content={"detail": exc.message})
+
+
+@app.get("/", response_model=HealthCheckResponse)
+async def health_check() -> HealthCheckResponse:
+    return HealthCheckResponse(status="ok", version="0.1.0")
