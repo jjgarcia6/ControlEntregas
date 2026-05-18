@@ -12,7 +12,6 @@ from app.models.kardex import KardexMovimiento
 from app.models.producto import Producto
 from app.models.xml_item import XmlItem
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -1,17 +1,17 @@
 import os
-import bcrypt
-from sqlalchemy import text
 
+import bcrypt
 import pytest_asyncio
 from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 
 load_dotenv()  # must run before os.getenv below
 
-from app.dependencies.db import get_db  # noqa: E402
 from app.config import settings  # noqa: E402
+from app.dependencies.db import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.base import Base  # noqa: E402
 
@@ -44,13 +44,11 @@ async def setup_database():
             settings.ADMIN_PASSWORD.encode(), bcrypt.gensalt()
         ).decode()
         await conn.execute(
-            text(
-                """
+            text("""
                 INSERT INTO usuarios (email, password_hash, nombre, rol, is_active)
                 VALUES (:email, :password_hash, :nombre, :rol, true)
                 ON CONFLICT (email) DO NOTHING
-                """
-            ),
+                """),
             {
                 "email": settings.ADMIN_EMAIL,
                 "password_hash": password_hash,

@@ -12,7 +12,6 @@ from app.models.entrega import EntregaItem, EntregaItemFifoDetalle
 from app.models.kardex import KardexMovimiento
 from app.models.producto import Producto
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

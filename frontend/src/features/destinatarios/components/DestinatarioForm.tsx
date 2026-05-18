@@ -51,10 +51,7 @@ type DestinatarioFormProps =
   | DestinatarioFormCreateProps
   | DestinatarioFormEditProps;
 
-function CreateForm({
-  onSubmit,
-  isPending,
-}: DestinatarioFormCreateProps) {
+function CreateForm({ onSubmit, isPending }: DestinatarioFormCreateProps) {
   const form = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
     defaultValues: {
@@ -66,7 +63,8 @@ function CreateForm({
     },
   });
 
-  const identificacion = useWatch({ control: form.control, name: "identificacion" }) ?? "";
+  const identificacion =
+    useWatch({ control: form.control, name: "identificacion" }) ?? "";
   const { refetch, isFetching } = useSearchDestinatario(identificacion);
 
   const handleIdBlur = async () => {
@@ -150,7 +148,11 @@ function CreateForm({
             <FormItem>
               <FormLabel>Email (opcional)</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="contacto@empresa.com" {...field} />
+                <Input
+                  type="email"
+                  placeholder="contacto@empresa.com"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -44,8 +44,8 @@ jobs:
       - name: Lint (ruff) + format check (black)
         run: |
           pip install ruff black
-          ruff check backend/app tests || true
-          black --check backend/app tests || true
+          ruff check backend/app backend/tests || true
+          black --check backend/app backend/tests || true
       - name: Type check (mypy)
         run: |
           pip install mypy
