@@ -7,13 +7,18 @@ from pydantic import BaseModel, Field
 
 # ─── Nodos reutilizados ────────────────────────────────────────────────────────
 
+
 class XmlResumen(BaseModel):
     id: UUID = Field(..., description="ID del XML")
-    numero_factura: str = Field(..., description="Número de factura (estab-pto-secuencial)")
+    numero_factura: str = Field(
+        ..., description="Número de factura (estab-pto-secuencial)"
+    )
     fecha_emision: date = Field(..., description="Fecha de emisión del XML")
     ruc_emisor: str = Field(..., description="RUC del emisor")
     razon_social_emisor: str = Field(..., description="Razón social del emisor")
-    is_active: bool = Field(..., description="False si el XML fue eliminado (soft delete)")
+    is_active: bool = Field(
+        ..., description="False si el XML fue eliminado (soft delete)"
+    )
 
 
 class XmlItemResumen(BaseModel):
@@ -28,7 +33,9 @@ class XmlItemResumen(BaseModel):
 class KardexMovimientoResumen(BaseModel):
     id: UUID = Field(..., description="ID del movimiento de Kardex")
     tipo: str = Field(..., description="ingreso | egreso | reversa_entrega")
-    fecha_movimiento: datetime = Field(..., description="Fecha y hora del movimiento (ISO 8601)")
+    fecha_movimiento: datetime = Field(
+        ..., description="Fecha y hora del movimiento (ISO 8601)"
+    )
     cantidad: Decimal = Field(..., description="Cantidad del movimiento")
     costo_unitario: Decimal = Field(..., description="Costo unitario del lote")
     costo_total: Decimal = Field(..., description="Costo total del movimiento")
@@ -43,9 +50,13 @@ class ProductoResumen(BaseModel):
 class EntregaResumen(BaseModel):
     id: UUID = Field(..., description="ID de la entrega")
     numero: int = Field(..., description="Número secuencial de la entrega")
-    snap_nombre: str = Field(..., description="Nombre del destinatario (snapshot inmutable)")
+    snap_nombre: str = Field(
+        ..., description="Nombre del destinatario (snapshot inmutable)"
+    )
     total_entrega: Decimal = Field(..., description="Valor total de la entrega")
-    saldo_pendiente: Decimal = Field(..., description="Saldo pendiente al momento de la consulta")
+    saldo_pendiente: Decimal = Field(
+        ..., description="Saldo pendiente al momento de la consulta"
+    )
     estado: str = Field(..., description="activa | eliminada")
 
 
@@ -66,16 +77,23 @@ class PagoAplicado(PagoResumen):
 
 # ─── Árbol desde XML ──────────────────────────────────────────────────────────
 
+
 class IngresoKardexTraza(BaseModel):
-    xml_item: XmlItemResumen = Field(..., description="Ítem del XML ingresado al Kardex")
+    xml_item: XmlItemResumen = Field(
+        ..., description="Ítem del XML ingresado al Kardex"
+    )
     kardex_movimiento: KardexMovimientoResumen = Field(
         ..., description="Movimiento de ingreso generado"
     )
-    producto: ProductoResumen = Field(..., description="Producto afectado por el ingreso")
+    producto: ProductoResumen = Field(
+        ..., description="Producto afectado por el ingreso"
+    )
 
 
 class EntregaConsumoTraza(BaseModel):
-    entrega: EntregaResumen = Field(..., description="Entrega que consumió stock de este XML")
+    entrega: EntregaResumen = Field(
+        ..., description="Entrega que consumió stock de este XML"
+    )
     cantidad_consumida: Decimal = Field(
         ..., description="Cantidad consumida de los lotes de este XML"
     )
@@ -99,17 +117,22 @@ class TrazabilidadXmlResponse(BaseModel):
 
 # ─── Árbol desde Entrega ──────────────────────────────────────────────────────
 
+
 class XmlOrigenTraza(BaseModel):
     xml: XmlResumen = Field(..., description="XML de origen del lote consumido")
     xml_item: XmlItemResumen = Field(..., description="Ítem del XML de origen")
     cantidad_consumida: Decimal = Field(
         ..., description="Cantidad de ese XML consumida en la entrega"
     )
-    costo_unitario: Decimal = Field(..., description="Costo unitario del lote FIFO consumido")
+    costo_unitario: Decimal = Field(
+        ..., description="Costo unitario del lote FIFO consumido"
+    )
 
 
 class TrazabilidadEntregaResponse(BaseModel):
-    entrega: EntregaResumen = Field(..., description="Nodo raíz: cabecera de la entrega consultada")
+    entrega: EntregaResumen = Field(
+        ..., description="Nodo raíz: cabecera de la entrega consultada"
+    )
     xmls_origen: list[XmlOrigenTraza] = Field(
         ..., description="XMLs que aportaron stock a esta entrega"
     )
@@ -120,8 +143,11 @@ class TrazabilidadEntregaResponse(BaseModel):
 
 # ─── Árbol desde Pago ────────────────────────────────────────────────────────
 
+
 class EntregaEnPagoTraza(BaseModel):
-    entrega: EntregaResumen = Field(..., description="Entrega dentro de la distribución del pago")
+    entrega: EntregaResumen = Field(
+        ..., description="Entrega dentro de la distribución del pago"
+    )
     monto_aplicado: Decimal = Field(
         ..., description="Monto de este pago aplicado a la entrega"
     )
@@ -131,7 +157,9 @@ class EntregaEnPagoTraza(BaseModel):
 
 
 class TrazabilidadPagoResponse(BaseModel):
-    pago: PagoResumen = Field(..., description="Nodo raíz: cabecera del pago consultado")
+    pago: PagoResumen = Field(
+        ..., description="Nodo raíz: cabecera del pago consultado"
+    )
     distribuciones: list[EntregaEnPagoTraza] = Field(
         ..., description="Entregas con trazabilidad completa hasta XMLs"
     )

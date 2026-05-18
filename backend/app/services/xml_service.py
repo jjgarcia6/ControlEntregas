@@ -187,9 +187,7 @@ async def obtener_por_id(xml_id: uuid.UUID, session: AsyncSession) -> Xml:
     return xml
 
 
-async def obtener_pendientes(
-    xml_id: uuid.UUID, session: AsyncSession
-) -> list[XmlItem]:
+async def obtener_pendientes(xml_id: uuid.UUID, session: AsyncSession) -> list[XmlItem]:
     xml_check = await session.execute(
         select(Xml).where(Xml.id == xml_id, Xml.is_active.is_(True))
     )
@@ -204,5 +202,3 @@ async def obtener_pendientes(
         )
     )
     return list(result.scalars().all())
-
-

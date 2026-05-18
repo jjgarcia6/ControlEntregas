@@ -1,12 +1,12 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { KardexIngresoContainer } from "./KardexIngresoContainer";
 
 // ── Mock hooks ───────────────────────────────────────────────────────────────
 
+vi.mock("@/features/xmls");
 vi.mock("../hooks/useFetchXmlPendientes");
 vi.mock("../hooks/useIngresarItems");
 
@@ -17,9 +17,11 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 // ── Hook imports (after mocks) ────────────────────────────────────────────────
 
 import { toast } from "sonner";
+import { useFetchXmls } from "@/features/xmls";
 import { useFetchXmlPendientes } from "../hooks/useFetchXmlPendientes";
 import { useIngresarItems } from "../hooks/useIngresarItems";
 
+const mockUseFetchXmls = vi.mocked(useFetchXmls);
 const mockUseFetchXmlPendientes = vi.mocked(useFetchXmlPendientes);
 const mockUseIngresarItems = vi.mocked(useIngresarItems);
 const mockToastSuccess = vi.mocked(toast.success);
@@ -27,6 +29,26 @@ const mockToastSuccess = vi.mocked(toast.success);
 // ── Fixture data ──────────────────────────────────────────────────────────────
 
 const MOCK_XML_ID = "550e8400-e29b-41d4-a716-446655440000";
+
+const mockXmlList = {
+  items: [
+    {
+      id: MOCK_XML_ID,
+      clave_acceso: "1234567890123456789012345678901234567890123456789",
+      numero_factura: "001-001-000000001",
+      fecha_emision: "2024-01-15",
+      razon_social_emisor: "EMPRESA TEST SA",
+      ruc_emisor: "1790012345001",
+      ruc_comprador: "0912345678001",
+      razon_social_comprador: "CLIENTE TEST SA",
+      importe_total: 115,
+      created_at: "2024-01-15T10:00:00Z",
+    },
+  ],
+  total: 1,
+  page: 1,
+  page_size: 100,
+};
 
 const mockPendientes = [
   {
@@ -56,18 +78,7 @@ const mockPendientes = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function renderContainer() {
-  return render(
-    <MemoryRouter>
-      <KardexIngresoContainer />
-    </MemoryRouter>
-  );
-}
-
-async function buscarXml() {
-  const input = screen.getByPlaceholderText(/ID del XML/i);
-  await userEvent.clear(input);
-  await userEvent.type(input, MOCK_XML_ID);
-  await userEvent.click(screen.getByRole("button", { name: /buscar/i }));
+  return render(<KardexIngresoContainer />);
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -76,105 +87,123 @@ describe("KardexIngresoContainer", () => {
   beforeEach(() => {
     mockToastSuccess.mockReset();
 
-    mockUseFetchXmlPendientes.mockReturnValue({
-      data: undefined,
+    mockUseFetchXmls.mockReturnValue({
+      data: mockXmlList,
       isLoading: false,
       error: null,
-    } as unknown as ReturnType<typeof useFetchXmlPendientes>);
+    } as unknown as ReturnType<typeof useFetchXmls>);
+
+    mockUseFetchXmlPendientes.mockImplementation(
+      (xmlId) =>
+        ({
+          data: xmlId ? mockPendientes : undefined,
+          isLoading: false,
+          error: null,
+        }) as unknown as ReturnType<typeof useFetchXmlPendientes>,
+    );
 
     mockUseIngresarItems.mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
-      error: null,
       errorMessage: null,
     } as unknown as ReturnType<typeof useIngresarItems>);
   });
 
-  it("muestra el campo de búsqueda de XML en estado inicial", () => {
+  it("muestra el selector de XML en estado inicial", () => {
     renderContainer();
-    expect(screen.getByPlaceholderText(/ID del XML/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /buscar/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(/xml pendientes de ingreso al kardex/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /seleccione un xml/i }),
+    ).toBeInTheDocument();
   });
 
-  it("flujo principal: carga ítems, selecciona, confirma y muestra éxito", async () => {
+  it("flujo principal: selecciona XML, marca ítems, confirma y muestra éxito", async () => {
+    const user = userEvent.setup();
     const mockMutate = vi.fn(
-      (
-        _vars: unknown,
-        callbacks?: { onSuccess?: () => void }
-      ) => {
+      (_vars: unknown, callbacks?: { onSuccess?: () => void }) => {
         callbacks?.onSuccess?.();
-      }
+      },
     );
-
-    mockUseFetchXmlPendientes.mockReturnValue({
-      data: mockPendientes,
-      isLoading: false,
-      error: null,
-    } as unknown as ReturnType<typeof useFetchXmlPendientes>);
 
     mockUseIngresarItems.mockReturnValue({
       mutate: mockMutate,
       isPending: false,
-      error: null,
       errorMessage: null,
     } as unknown as ReturnType<typeof useIngresarItems>);
 
     renderContainer();
-    await buscarXml();
+    await user.selectOptions(screen.getByRole("combobox"), MOCK_XML_ID);
 
     await waitFor(() => {
       expect(screen.getByText("Producto A")).toBeInTheDocument();
     });
 
-    // Select the first item via its checkbox
-    const checkboxes = screen.getAllByRole("checkbox");
-    await userEvent.click(checkboxes[0]);
+    await user.click(
+      screen.getByRole("checkbox", { name: /seleccionar producto a/i }),
+    );
 
-    // Confirm
-    const confirmBtn = screen.getByRole("button", { name: /confirmar ingreso/i });
-    await userEvent.click(confirmBtn);
+    const quantityInput = screen.getAllByRole("spinbutton")[0];
+    await user.clear(quantityInput);
+    await user.type(quantityInput, "2");
+
+    const confirmBtn = screen.getByRole("button", {
+      name: /confirmar ingreso/i,
+    });
+    await user.click(confirmBtn);
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledOnce();
+      expect(mockMutate).toHaveBeenCalledWith(
+        {
+          xmlId: MOCK_XML_ID,
+          body: {
+            items: [{ xml_item_id: mockPendientes[0].id, cantidad: 2 }],
+          },
+        },
+        expect.objectContaining({ onSuccess: expect.any(Function) }),
+      );
       expect(mockToastSuccess).toHaveBeenCalledWith(
-        expect.stringMatching(/kardex/i)
+        expect.stringMatching(/kardex/i),
       );
     });
   });
 
-  it("muestra mensaje de error cuando la API retorna error", async () => {
-    mockUseFetchXmlPendientes.mockReturnValue({
-      data: mockPendientes,
-      isLoading: false,
-      error: null,
-    } as unknown as ReturnType<typeof useFetchXmlPendientes>);
-
+  it("muestra mensaje de error cuando la mutación retorna error", async () => {
     mockUseIngresarItems.mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
-      error: new Error("Unprocessable"),
       errorMessage: "La cantidad ingresada supera la cantidad pendiente",
     } as unknown as ReturnType<typeof useIngresarItems>);
 
     renderContainer();
-    await buscarXml();
+    await userEvent
+      .setup()
+      .selectOptions(screen.getByRole("combobox"), MOCK_XML_ID);
 
     await waitFor(() => {
       expect(
-        screen.getByText(/la cantidad ingresada supera la cantidad pendiente/i)
+        screen.getByText(/la cantidad ingresada supera la cantidad pendiente/i),
       ).toBeInTheDocument();
     });
   });
 
   it("muestra estado de carga mientras se cargan los ítems", async () => {
-    mockUseFetchXmlPendientes.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null,
-    } as unknown as ReturnType<typeof useFetchXmlPendientes>);
+    mockUseFetchXmlPendientes.mockImplementation(
+      (xmlId) =>
+        ({
+          data: undefined,
+          isLoading: Boolean(xmlId),
+          error: null,
+        }) as unknown as ReturnType<typeof useFetchXmlPendientes>,
+    );
 
     renderContainer();
-    await buscarXml();
+    await userEvent
+      .setup()
+      .selectOptions(screen.getByRole("combobox"), MOCK_XML_ID);
 
     await waitFor(() => {
       expect(screen.getByText(/cargando ítems/i)).toBeInTheDocument();
@@ -182,42 +211,39 @@ describe("KardexIngresoContainer", () => {
   });
 
   it("accesibilidad: checkboxes tienen aria-label descriptivo", async () => {
-    mockUseFetchXmlPendientes.mockReturnValue({
-      data: mockPendientes,
-      isLoading: false,
-      error: null,
-    } as unknown as ReturnType<typeof useFetchXmlPendientes>);
-
     renderContainer();
-    await buscarXml();
+    await userEvent
+      .setup()
+      .selectOptions(screen.getByRole("combobox"), MOCK_XML_ID);
 
     await waitFor(() => {
       expect(screen.getByText("Producto A")).toBeInTheDocument();
     });
 
-    const checkboxA = screen.getByRole("checkbox", { name: /seleccionar producto a/i });
+    const checkboxA = screen.getByRole("checkbox", {
+      name: /seleccionar producto a/i,
+    });
     expect(checkboxA).toBeInTheDocument();
   });
 
   it("accesibilidad: campo de cantidad muestra aria-describedby cuando hay error", async () => {
-    mockUseFetchXmlPendientes.mockReturnValue({
-      data: mockPendientes,
-      isLoading: false,
-      error: null,
-    } as unknown as ReturnType<typeof useFetchXmlPendientes>);
-
     renderContainer();
-    await buscarXml();
+    await userEvent
+      .setup()
+      .selectOptions(screen.getByRole("combobox"), MOCK_XML_ID);
 
     await waitFor(() => {
       expect(screen.getByText("Producto A")).toBeInTheDocument();
     });
 
-    const checkboxes = screen.getAllByRole("checkbox");
-    await userEvent.click(checkboxes[0]); // enable quantity field
+    await userEvent
+      .setup()
+      .click(screen.getByRole("checkbox", { name: /seleccionar producto a/i }));
 
     const numInputs = screen.getAllByRole("spinbutton");
-    fireEvent.change(numInputs[0], { target: { value: "0" } });
+    const user = userEvent.setup();
+    await user.clear(numInputs[0]);
+    await user.type(numInputs[0], "0");
 
     await waitFor(() => {
       expect(screen.getByText(/mín\. 1/i)).toBeInTheDocument();

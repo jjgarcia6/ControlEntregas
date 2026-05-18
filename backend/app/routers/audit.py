@@ -44,7 +44,9 @@ async def consultar_audit_log(
 
 @router.get("/export")
 async def exportar_audit_log(
-    formato: Literal["csv", "json"] = Query(..., description="Formato de exportación: csv o json"),
+    formato: Literal["csv", "json"] = Query(
+        ..., description="Formato de exportación: csv o json"
+    ),
     entidad: str | None = None,
     usuario_id: UUID | None = None,
     accion: str | None = None,

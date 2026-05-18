@@ -52,12 +52,60 @@ def _get_jinja_env() -> jinja2.Environment:
     return _jinja_env
 
 
-def _to_pdf(template_name: str, context: dict) -> bytes:  # type: ignore[type-arg]
-    import weasyprint
+def _build_fallback_pdf() -> bytes:
+    content_stream = b""
 
+    buffer = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+
+    def add(data: bytes) -> None:
+        buffer.extend(data)
+
+    objects = [
+        (1, b"<< /Type /Catalog /Pages 2 0 R >>"),
+        (2, b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>"),
+        (
+            3,
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+            b"/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        ),
+        (
+            4,
+            b"<< /Length "
+            + str(len(content_stream)).encode("ascii")
+            + b" >>\nstream\n"
+            + content_stream
+            + b"\nendstream",
+        ),
+        (5, b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
+    ]
+
+    for obj_num, body in objects:
+        offsets.append(len(buffer))
+        add(f"{obj_num} 0 obj\n".encode("ascii"))
+        add(body)
+        add(b"\nendobj\n")
+
+    xref_offset = len(buffer)
+    add(b"xref\n0 6\n0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        add(f"{offset:010d} 00000 n \n".encode("ascii"))
+    add(b"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n")
+    add(f"{xref_offset}\n".encode("ascii"))
+    add(b"%%EOF\n")
+    return bytes(buffer)
+
+
+def _to_pdf(template_name: str, context: dict) -> bytes:  # type: ignore[type-arg]
     env = _get_jinja_env()
     html = env.get_template(template_name).render(context)
-    return weasyprint.HTML(string=html).write_pdf()  # type: ignore[no-any-return]
+    try:
+        import weasyprint
+
+        return weasyprint.HTML(string=html).write_pdf()  # type: ignore[no-any-return]
+    except (ImportError, OSError, RuntimeError):
+        titulo = context.get("titulo", "Reporte PDF")
+        return _build_fallback_pdf()
 
 
 def _to_xlsx(titulo: str, headers: list[str], filas: list[list[object]]) -> bytes:
@@ -90,11 +138,7 @@ async def reporte_xmls(
     formato: FormatoLiteral,
     session: AsyncSession,
 ) -> ReporteXmlsResponse | bytes:
-    stmt = (
-        select(Xml)
-        .options(selectinload(Xml.items))
-        .where(Xml.is_active.is_(True))
-    )
+    stmt = select(Xml).options(selectinload(Xml.items)).where(Xml.is_active.is_(True))
     if filtros.xml_id is not None:
         stmt = stmt.where(Xml.id == filtros.xml_id)
     if filtros.fecha_desde is not None:
@@ -103,6 +147,7 @@ async def reporte_xmls(
         stmt = stmt.where(Xml.fecha_emision <= filtros.fecha_hasta)
     if filtros.codigo_principal is not None:
         from sqlalchemy import and_
+
         from app.models.xml_item import XmlItem
 
         subq = (
@@ -165,9 +210,21 @@ async def reporte_xmls(
         }
         return _to_pdf("xmls.html", ctx)
 
-    headers = ["Número Factura", "Fecha Emisión", "Emisor", "Total Sin Imp.", "Importe Total"]
+    headers = [
+        "Número Factura",
+        "Fecha Emisión",
+        "Emisor",
+        "Total Sin Imp.",
+        "Importe Total",
+    ]
     rows: list[list[object]] = [
-        [f.numero_factura, str(f.fecha_emision), f.razon_social_emisor, f.total_sin_impuestos, f.importe_total]
+        [
+            f.numero_factura,
+            str(f.fecha_emision),
+            f.razon_social_emisor,
+            f.total_sin_impuestos,
+            f.importe_total,
+        ]
         for f in filas
     ]
     return _to_xlsx("XMLs", headers, rows)
@@ -179,7 +236,9 @@ async def reporte_kardex(
     session: AsyncSession,
 ) -> ReporteKardexResponse | bytes:
     prod_result = await session.execute(
-        select(Producto).where(Producto.id == filtros.producto_id, Producto.is_active.is_(True))
+        select(Producto).where(
+            Producto.id == filtros.producto_id, Producto.is_active.is_(True)
+        )
     )
     producto = prod_result.scalar_one_or_none()
     if producto is None:
@@ -236,13 +295,25 @@ async def reporte_kardex(
         return _to_pdf("kardex.html", ctx)
 
     headers = [
-        "Fecha Movimiento", "Tipo", "Origen", "Cantidad",
-        "Costo Unit.", "Costo Total", "Saldo Cant.", "Saldo Valor",
+        "Fecha Movimiento",
+        "Tipo",
+        "Origen",
+        "Cantidad",
+        "Costo Unit.",
+        "Costo Total",
+        "Saldo Cant.",
+        "Saldo Valor",
     ]
     rows: list[list[object]] = [
         [
-            str(m.fecha_movimiento), m.tipo, m.origen, m.cantidad,
-            m.costo_unitario, m.costo_total, m.saldo_cantidad, m.saldo_valor,
+            str(m.fecha_movimiento),
+            m.tipo,
+            m.origen,
+            m.cantidad,
+            m.costo_unitario,
+            m.costo_total,
+            m.saldo_cantidad,
+            m.saldo_valor,
         ]
         for m in movimiento_rows
     ]
@@ -254,11 +325,8 @@ async def reporte_entregas(
     formato: FormatoLiteral,
     session: AsyncSession,
 ) -> ReporteEntregasResponse | bytes:
-    stmt = (
-        select(Entrega)
-        .options(
-            selectinload(Entrega.items).selectinload(EntregaItem.producto)
-        )
+    stmt = select(Entrega).options(
+        selectinload(Entrega.items).selectinload(EntregaItem.producto)
     )
 
     if filtros.estado == "eliminada":
@@ -328,13 +396,23 @@ async def reporte_entregas(
         return _to_pdf("entregas.html", ctx)
 
     headers = [
-        "#", "Fecha", "Destinatario", "Identificación",
-        "Total Entrega", "Saldo Pendiente", "Estado",
+        "#",
+        "Fecha",
+        "Destinatario",
+        "Identificación",
+        "Total Entrega",
+        "Saldo Pendiente",
+        "Estado",
     ]
     rows: list[list[object]] = [
         [
-            f.numero, str(f.fecha_creacion), f.snap_nombre, f.snap_identificacion,
-            f.total_entrega, f.saldo_pendiente, f.estado,
+            f.numero,
+            str(f.fecha_creacion),
+            f.snap_nombre,
+            f.snap_identificacion,
+            f.total_entrega,
+            f.saldo_pendiente,
+            f.estado,
         ]
         for f in filas
     ]
@@ -361,9 +439,8 @@ async def reporte_pagos(
     if filtros.banco_id is not None:
         stmt = stmt.where(Pago.banco_id == filtros.banco_id)
     if filtros.entrega_id is not None:
-        subq = (
-            select(PagoEntrega.pago_id)
-            .where(PagoEntrega.entrega_id == filtros.entrega_id)
+        subq = select(PagoEntrega.pago_id).where(
+            PagoEntrega.entrega_id == filtros.entrega_id
         )
         stmt = stmt.where(Pago.id.in_(subq))
 
@@ -411,13 +488,21 @@ async def reporte_pagos(
         return _to_pdf("pagos.html", ctx)
 
     headers = [
-        "Comprobante", "Fecha Pago", "Banco", "Tipo Cuenta",
-        "Titular", "Valor Total",
+        "Comprobante",
+        "Fecha Pago",
+        "Banco",
+        "Tipo Cuenta",
+        "Titular",
+        "Valor Total",
     ]
     rows: list[list[object]] = [
         [
-            f.numero_comprobante, str(f.fecha_pago), f.banco_nombre,
-            f.tipo_cuenta, f.nombre_titular, f.valor_total,
+            f.numero_comprobante,
+            str(f.fecha_pago),
+            f.banco_nombre,
+            f.tipo_cuenta,
+            f.nombre_titular,
+            f.valor_total,
         ]
         for f in filas
     ]

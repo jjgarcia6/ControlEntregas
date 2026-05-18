@@ -27,9 +27,7 @@ async def crear(
     payload_antes: dict[str, Any] | None = None,
     payload_despues: dict[str, Any] | None = None,
 ) -> BancoResponse:
-    existing = await session.execute(
-        select(Banco).where(Banco.nombre == datos.nombre)
-    )
+    existing = await session.execute(select(Banco).where(Banco.nombre == datos.nombre))
     if existing.scalar_one_or_none() is not None:
         raise ConflictoUnicidad(f"Ya existe un banco con nombre '{datos.nombre}'")
 

@@ -34,7 +34,9 @@ async def consultar(
         .select_from(outerjoin(AuditLog, Usuario, AuditLog.usuario_id == Usuario.id))
         .order_by(AuditLog.created_at.desc())
     )
-    query = _aplicar_filtros(query, entidad, usuario_id, accion, fecha_desde, fecha_hasta)
+    query = _aplicar_filtros(
+        query, entidad, usuario_id, accion, fecha_desde, fecha_hasta
+    )
 
     count_q = select(func.count()).select_from(query.subquery())
     total: int = (await session.execute(count_q)).scalar_one()
@@ -63,7 +65,9 @@ async def exportar(
         .order_by(AuditLog.created_at.desc())
         .limit(_MAX_EXPORT_ROWS)
     )
-    query = _aplicar_filtros(query, entidad, usuario_id, accion, fecha_desde, fecha_hasta)
+    query = _aplicar_filtros(
+        query, entidad, usuario_id, accion, fecha_desde, fecha_hasta
+    )
 
     rows = (await session.execute(query)).all()
     items = [_to_response(row.AuditLog, row.usuario_email) for row in rows]
@@ -139,7 +143,9 @@ def _to_csv(items: list[AuditLogItemResponse]) -> bytes:
         row["entidad_id"] = str(row["entidad_id"]) if row["entidad_id"] else ""
         row["created_at"] = row["created_at"].isoformat() if row["created_at"] else ""
         row["payload_antes"] = (
-            json.dumps(row["payload_antes"], ensure_ascii=False) if row["payload_antes"] else ""
+            json.dumps(row["payload_antes"], ensure_ascii=False)
+            if row["payload_antes"]
+            else ""
         )
         row["payload_despues"] = (
             json.dumps(row["payload_despues"], ensure_ascii=False)

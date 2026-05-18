@@ -2,8 +2,18 @@ from app.models.audit_log import AuditLog
 from app.models.banco import Banco
 from app.models.base import AuditMixin, Base
 from app.models.destinatario import Destinatario
-from app.models.entrega import Entrega, EntregaItem, EntregaItemFifoDetalle, EstadoEntrega
-from app.models.kardex import KardexMovimiento, OrigenMovimiento, TipoMovimiento, XmlItemIngreso
+from app.models.entrega import (
+    Entrega,
+    EntregaItem,
+    EntregaItemFifoDetalle,
+    EstadoEntrega,
+)
+from app.models.kardex import (
+    KardexMovimiento,
+    OrigenMovimiento,
+    TipoMovimiento,
+    XmlItemIngreso,
+)
 from app.models.pago import EstadoPago, Pago, PagoEntrega, TipoCuenta
 from app.models.producto import Producto
 from app.models.usuario import Usuario

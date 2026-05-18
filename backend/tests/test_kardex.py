@@ -17,6 +17,7 @@ from app.models.xml_item import XmlItem
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _clave(n: int) -> str:
     return f"5{n:04d}" + "0" * 44  # 49 chars, unique to kardex tests (prefix 5)
 
@@ -99,7 +100,12 @@ async def _create_user_token(
 ) -> str:
     await client.post(
         "/usuarios",
-        json={"email": email, "password": "Test1234!", "nombre": "Test User", "rol": rol},
+        json={
+            "email": email,
+            "password": "Test1234!",
+            "nombre": "Test User",
+            "rol": rol,
+        },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     return await _get_token(client, email, "Test1234!")
@@ -368,8 +374,13 @@ async def test_ingreso_actualiza_saldo_producto(
     token = await _admin_token(test_client)
     codigo = "K_SALDO_01"
     data, _ = await _post_xml(
-        test_client, token, _clave(30), codigo=codigo,
-        cantidad="4.0000", precio_unit="25.0000", precio_total="100.00"
+        test_client,
+        token,
+        _clave(30),
+        codigo=codigo,
+        cantidad="4.0000",
+        precio_unit="25.0000",
+        precio_total="100.00",
     )
     xml_id = data["id"]
     item_id = data["items"][0]["id"]
@@ -387,9 +398,11 @@ async def test_ingreso_actualiza_saldo_producto(
     assert Decimal(str(movs[0]["saldo_valor"])) == Decimal("100.00")
 
     # Also verify DB via GET historial endpoint
-    producto = (await db_session.execute(
-        select(Producto).where(Producto.codigo_principal == codigo)
-    )).scalar_one()
+    producto = (
+        await db_session.execute(
+            select(Producto).where(Producto.codigo_principal == codigo)
+        )
+    ).scalar_one()
     assert producto.saldo_cantidad == Decimal("4.0000")
     assert producto.saldo_valor == Decimal("100.00")
 
@@ -410,9 +423,11 @@ async def test_ingreso_parcial_actualiza_cantidades(
     )
     assert status == 201
 
-    xml_item = (await db_session.execute(
-        select(XmlItem).where(XmlItem.id == uuid.UUID(item_id))
-    )).scalar_one()
+    xml_item = (
+        await db_session.execute(
+            select(XmlItem).where(XmlItem.id == uuid.UUID(item_id))
+        )
+    ).scalar_one()
 
     assert xml_item.cantidad_ingresada == Decimal("3.0000")
     assert xml_item.cantidad_pendiente == Decimal("1.0000")
@@ -428,8 +443,12 @@ async def test_reingreso_crea_nuevo_movimiento(
     xml_id = data["id"]
     item_id = data["items"][0]["id"]
 
-    await _ingresar(test_client, token, xml_id, [{"xml_item_id": item_id, "cantidad": 2}])
-    await _ingresar(test_client, token, xml_id, [{"xml_item_id": item_id, "cantidad": 2}])
+    await _ingresar(
+        test_client, token, xml_id, [{"xml_item_id": item_id, "cantidad": 2}]
+    )
+    await _ingresar(
+        test_client, token, xml_id, [{"xml_item_id": item_id, "cantidad": 2}]
+    )
 
     result = await db_session.execute(
         select(KardexMovimiento)
@@ -439,9 +458,11 @@ async def test_reingreso_crea_nuevo_movimiento(
     movimientos = result.scalars().all()
     assert len(movimientos) == 2
 
-    xml_item = (await db_session.execute(
-        select(XmlItem).where(XmlItem.id == uuid.UUID(item_id))
-    )).scalar_one()
+    xml_item = (
+        await db_session.execute(
+            select(XmlItem).where(XmlItem.id == uuid.UUID(item_id))
+        )
+    ).scalar_one()
     assert xml_item.cantidad_ingresada == Decimal("4.0000")
     assert xml_item.cantidad_pendiente == Decimal("0.0000")
 
@@ -456,7 +477,9 @@ async def test_item_con_pendiente_cero_no_aparece_en_pendientes(
     item_id = data["items"][0]["id"]
 
     # Ingresar todo → cantidad_pendiente = 0
-    await _ingresar(test_client, token, xml_id, [{"xml_item_id": item_id, "cantidad": 4}])
+    await _ingresar(
+        test_client, token, xml_id, [{"xml_item_id": item_id, "cantidad": 4}]
+    )
 
     resp = await test_client.get(
         f"/xmls/{xml_id}/pendientes",
@@ -476,12 +499,22 @@ async def test_saldo_kardex_movimiento_acumulado(
 
     # Upload two XMLs for the same product
     data1, _ = await _post_xml(
-        test_client, token, _clave(34), codigo=codigo,
-        cantidad="4.0000", precio_unit="25.0000", precio_total="100.00"
+        test_client,
+        token,
+        _clave(34),
+        codigo=codigo,
+        cantidad="4.0000",
+        precio_unit="25.0000",
+        precio_total="100.00",
     )
     data2, _ = await _post_xml(
-        test_client, token, _clave(35), codigo=codigo,
-        cantidad="6.0000", precio_unit="10.0000", precio_total="60.00"
+        test_client,
+        token,
+        _clave(35),
+        codigo=codigo,
+        cantidad="6.0000",
+        precio_unit="10.0000",
+        precio_total="60.00",
     )
     xml_id1 = data1["id"]
     xml_id2 = data2["id"]

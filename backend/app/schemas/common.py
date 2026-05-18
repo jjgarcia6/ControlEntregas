@@ -12,7 +12,9 @@ class HealthCheckResponse(BaseModel):
 
 class ApiErrorResponse(BaseModel):
     detail: str = Field(..., description="Mensaje de error legible por el usuario")
-    code: Optional[str] = Field(None, description="Código de error interno en snake_case")
+    code: Optional[str] = Field(
+        None, description="Código de error interno en snake_case"
+    )
 
 
 class PaginatedResponse(BaseModel, Generic[T]):

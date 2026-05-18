@@ -15,6 +15,7 @@ from app.models.entrega import Entrega
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _clave(n: int) -> str:
     return f"7{n:04d}" + "0" * 44  # prefix 7 for pagos tests
 
@@ -96,7 +97,12 @@ async def _create_user_token(
 ) -> str:
     await client.post(
         "/usuarios",
-        json={"email": email, "password": "Test1234!", "nombre": "Test User", "rol": rol},
+        json={
+            "email": email,
+            "password": "Test1234!",
+            "nombre": "Test User",
+            "rol": rol,
+        },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     return await _get_token(client, email, "Test1234!")
@@ -111,7 +117,9 @@ async def _crear_banco(client: AsyncClient, token: str, nombre: str) -> dict:
     return dict(resp.json())
 
 
-async def _crear_destinatario(client: AsyncClient, token: str, identificacion: str) -> dict:
+async def _crear_destinatario(
+    client: AsyncClient, token: str, identificacion: str
+) -> dict:
     resp = await client.post(
         "/destinatarios",
         json={
@@ -168,20 +176,37 @@ async def _setup_entrega_con_saldo(
 ) -> tuple[dict, str]:
     """Returns (entrega_data, producto_id)."""
     xml = await _post_xml(
-        client, token, _clave(seq), codigo=codigo,
-        cantidad=cantidad, precio_unit=precio_unit, precio_total=precio_total,
+        client,
+        token,
+        _clave(seq),
+        codigo=codigo,
+        cantidad=cantidad,
+        precio_unit=precio_unit,
+        precio_total=precio_total,
     )
     item_id = xml["items"][0]["id"]
-    await _ingresar(client, token, xml["id"], [{"xml_item_id": item_id, "cantidad": float(cantidad)}])
+    await _ingresar(
+        client,
+        token,
+        xml["id"],
+        [{"xml_item_id": item_id, "cantidad": float(cantidad)}],
+    )
 
-    resp = await client.get("/kardex/productos", headers={"Authorization": f"Bearer {token}"})
+    resp = await client.get(
+        "/kardex/productos", headers={"Authorization": f"Bearer {token}"}
+    )
     productos = resp.json()["items"]
     prod = next(p for p in productos if p["codigo_principal"] == codigo)
 
     entrega, status = await _crear_entrega(
-        client, token, dest_id, [{"producto_id": prod["id"], "cantidad": float(cantidad)}]
+        client,
+        token,
+        dest_id,
+        [{"producto_id": prod["id"], "cantidad": float(cantidad)}],
     )
-    assert status == 201, f"_setup_entrega_con_saldo: expected 201, got {status}: {entrega}"
+    assert (
+        status == 201
+    ), f"_setup_entrega_con_saldo: expected 201, got {status}: {entrega}"
     return entrega, prod["id"]
 
 
@@ -214,13 +239,16 @@ async def _crear_pago(
 # POST /pagos
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_should_create_pago_when_totals_match(
     test_client: AsyncClient, db_session: AsyncSession
 ) -> None:
     token = await _admin_token(test_client)
     dest = await _crear_destinatario(test_client, token, "1700000001001")
-    banco = await _crear_banco(test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}")
+    banco = await _crear_banco(
+        test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}"
+    )
 
     entrega, _ = await _setup_entrega_con_saldo(test_client, token, 1, dest["id"])
 
@@ -228,7 +256,10 @@ async def test_should_create_pago_when_totals_match(
     monto = float(saldo_antes)
 
     data, status = await _crear_pago(
-        test_client, token, banco["id"], monto,
+        test_client,
+        token,
+        banco["id"],
+        monto,
         [{"entrega_id": entrega["id"], "monto_aplicado": monto}],
     )
 
@@ -253,14 +284,19 @@ async def test_should_reject_pago_when_sum_does_not_match_total(
 ) -> None:
     token = await _admin_token(test_client)
     dest = await _crear_destinatario(test_client, token, "1710000017001")
-    banco = await _crear_banco(test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}")
+    banco = await _crear_banco(
+        test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}"
+    )
 
     entrega, _ = await _setup_entrega_con_saldo(test_client, token, 2, dest["id"])
     saldo = float(entrega["saldo_pendiente"])
 
     # valor_total = saldo, but distribute only half → sum mismatch
     data, status = await _crear_pago(
-        test_client, token, banco["id"], saldo,
+        test_client,
+        token,
+        banco["id"],
+        saldo,
         [{"entrega_id": entrega["id"], "monto_aplicado": saldo / 2}],
     )
 
@@ -274,14 +310,19 @@ async def test_should_reject_pago_when_monto_exceeds_saldo_pendiente(
 ) -> None:
     token = await _admin_token(test_client)
     dest = await _crear_destinatario(test_client, token, "1710100015001")
-    banco = await _crear_banco(test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}")
+    banco = await _crear_banco(
+        test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}"
+    )
 
     entrega, _ = await _setup_entrega_con_saldo(test_client, token, 3, dest["id"])
     saldo = float(entrega["saldo_pendiente"])
     exceso = saldo + 100.0
 
     data, status = await _crear_pago(
-        test_client, token, banco["id"], exceso,
+        test_client,
+        token,
+        banco["id"],
+        exceso,
         [{"entrega_id": entrega["id"], "monto_aplicado": exceso}],
     )
 
@@ -295,7 +336,9 @@ async def test_should_reject_pago_when_entrega_is_deleted(
 ) -> None:
     token = await _admin_token(test_client)
     dest = await _crear_destinatario(test_client, token, "1713175071001")
-    banco = await _crear_banco(test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}")
+    banco = await _crear_banco(
+        test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}"
+    )
 
     entrega, _ = await _setup_entrega_con_saldo(test_client, token, 4, dest["id"])
 
@@ -308,7 +351,10 @@ async def test_should_reject_pago_when_entrega_is_deleted(
 
     # Now try to create a pago for the deleted entrega
     data, status = await _crear_pago(
-        test_client, token, banco["id"], 100.0,
+        test_client,
+        token,
+        banco["id"],
+        100.0,
         [{"entrega_id": entrega["id"], "monto_aplicado": 100.0}],
     )
 
@@ -324,10 +370,15 @@ async def test_should_return_403_when_lectura_creates_pago(
     lectura_token = await _create_user_token(
         test_client, admin_token, f"lectura_{uuid.uuid4().hex[:6]}@test.com", "lectura"
     )
-    banco = await _crear_banco(test_client, admin_token, f"Banco Pago Test {uuid.uuid4().hex[:6]}")
+    banco = await _crear_banco(
+        test_client, admin_token, f"Banco Pago Test {uuid.uuid4().hex[:6]}"
+    )
 
     data, status = await _crear_pago(
-        test_client, lectura_token, banco["id"], 100.0,
+        test_client,
+        lectura_token,
+        banco["id"],
+        100.0,
         [{"entrega_id": str(uuid.uuid4()), "monto_aplicado": 100.0}],
     )
 
@@ -338,20 +389,26 @@ async def test_should_return_403_when_lectura_creates_pago(
 # DELETE /pagos/{id}
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_should_delete_pago_and_restore_saldo_pendiente(
     test_client: AsyncClient, db_session: AsyncSession
 ) -> None:
     token = await _admin_token(test_client)
     dest = await _crear_destinatario(test_client, token, "1720000007001")
-    banco = await _crear_banco(test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}")
+    banco = await _crear_banco(
+        test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}"
+    )
 
     entrega, _ = await _setup_entrega_con_saldo(test_client, token, 5, dest["id"])
     saldo_original = Decimal(str(entrega["saldo_pendiente"]))
     monto = float(saldo_original) / 2
 
     pago, _ = await _crear_pago(
-        test_client, token, banco["id"], monto,
+        test_client,
+        token,
+        banco["id"],
+        monto,
         [{"entrega_id": entrega["id"], "monto_aplicado": monto}],
     )
     assert pago.get("id")
@@ -381,6 +438,7 @@ async def test_should_delete_pago_and_restore_saldo_pendiente(
 # GET /pagos/{id}
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_should_return_404_when_pago_not_found(
     test_client: AsyncClient,
@@ -397,19 +455,25 @@ async def test_should_return_404_when_pago_not_found(
 # GET /pagos — filter by fecha
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_should_list_pagos_filtered_by_fecha(
     test_client: AsyncClient,
 ) -> None:
     token = await _admin_token(test_client)
     dest = await _crear_destinatario(test_client, token, "1700000027001")
-    banco = await _crear_banco(test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}")
+    banco = await _crear_banco(
+        test_client, token, f"Banco Pago Test {uuid.uuid4().hex[:6]}"
+    )
 
     entrega, _ = await _setup_entrega_con_saldo(test_client, token, 6, dest["id"])
     monto = float(entrega["saldo_pendiente"])
 
     await _crear_pago(
-        test_client, token, banco["id"], monto,
+        test_client,
+        token,
+        banco["id"],
+        monto,
         [{"entrega_id": entrega["id"], "monto_aplicado": monto}],
         fecha="2024-06-15",
     )
@@ -438,6 +502,7 @@ async def test_should_list_pagos_filtered_by_fecha(
 # GET /entregas/pendientes — filter by q
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_should_list_entregas_pendientes_filtered_by_q(
     test_client: AsyncClient,
@@ -457,7 +522,9 @@ async def test_should_list_entregas_pendientes_filtered_by_q(
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] >= 1
-    assert all(nombre[:10].lower() in item["snap_nombre"].lower() for item in data["items"])
+    assert all(
+        nombre[:10].lower() in item["snap_nombre"].lower() for item in data["items"]
+    )
 
     # Non-matching query should return empty
     resp2 = await test_client.get(

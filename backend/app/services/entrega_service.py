@@ -8,7 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.destinatario import Destinatario
-from app.models.entrega import Entrega, EntregaItem, EntregaItemFifoDetalle, EstadoEntrega
+from app.models.entrega import (
+    Entrega,
+    EntregaItem,
+    EntregaItemFifoDetalle,
+    EstadoEntrega,
+)
 from app.models.kardex import KardexMovimiento, OrigenMovimiento, TipoMovimiento
 from app.models.pago import Pago, PagoEntrega
 from app.models.producto import Producto
@@ -21,7 +26,11 @@ from app.schemas.entrega import (
 )
 from app.schemas.pago import EntregaPendienteResponse
 from app.utils.audit import auditar
-from app.utils.exceptions import EliminacionBloqueada, EntidadNoEncontrada, SaldoInsuficiente
+from app.utils.exceptions import (
+    EliminacionBloqueada,
+    EntidadNoEncontrada,
+    SaldoInsuficiente,
+)
 from app.utils.fifo import LoteFIFO, calcular_consumo_fifo
 
 
@@ -120,7 +129,9 @@ async def crear_entrega(
             lote.saldo_cantidad = lote.saldo_cantidad - consumo.cantidad
 
             running_saldo_cantidad = running_saldo_cantidad - consumo.cantidad
-            running_saldo_valor = running_saldo_valor - (consumo.cantidad * consumo.costo_unitario)
+            running_saldo_valor = running_saldo_valor - (
+                consumo.cantidad * consumo.costo_unitario
+            )
 
             egreso = KardexMovimiento(
                 producto_id=producto.id,
@@ -145,7 +156,9 @@ async def crear_entrega(
                 primer_egreso = egreso
 
         if primer_egreso is None:
-            raise SaldoInsuficiente("No se pudo calcular el consumo FIFO para el producto")
+            raise SaldoInsuficiente(
+                "No se pudo calcular el consumo FIFO para el producto"
+            )
 
         entrega_item = EntregaItem(
             entrega_id=entrega.id,
@@ -239,10 +252,8 @@ async def obtener_entrega(entrega_id: uuid.UUID, session: AsyncSession) -> Entre
         select(Entrega)
         .where(Entrega.id == entrega_id, Entrega.is_active.is_(True))
         .options(
-            selectinload(Entrega.items)
-            .selectinload(EntregaItem.fifo_detalle),
-            selectinload(Entrega.items)
-            .selectinload(EntregaItem.producto),
+            selectinload(Entrega.items).selectinload(EntregaItem.fifo_detalle),
+            selectinload(Entrega.items).selectinload(EntregaItem.producto),
         )
     )
     entrega = result.scalar_one_or_none()

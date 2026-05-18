@@ -7,12 +7,21 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.entrega import Entrega
-from app.models.kardex import KardexMovimiento, OrigenMovimiento, TipoMovimiento, XmlItemIngreso
+from app.models.kardex import (
+    KardexMovimiento,
+    OrigenMovimiento,
+    TipoMovimiento,
+    XmlItemIngreso,
+)
 from app.models.producto import Producto
 from app.models.xml import Xml
 from app.models.xml_item import XmlItem
 from app.schemas.common import PaginatedResponse
-from app.schemas.kardex import KardexIngresoItemRequest, KardexMovimientoResponse, ProductoConSaldoResponse
+from app.schemas.kardex import (
+    KardexIngresoItemRequest,
+    KardexMovimientoResponse,
+    ProductoConSaldoResponse,
+)
 from app.utils.audit import auditar
 from app.utils.exceptions import EntidadNoEncontrada, ValidacionNegocio
 
@@ -149,9 +158,7 @@ async def obtener_historial(
     fecha_hasta: date | None = None,
 ) -> PaginatedResponse[KardexMovimientoResponse]:
     producto_result = await session.execute(
-        select(Producto).where(
-            Producto.id == producto_id, Producto.is_active.is_(True)
-        )
+        select(Producto).where(Producto.id == producto_id, Producto.is_active.is_(True))
     )
     if producto_result.scalar_one_or_none() is None:
         raise EntidadNoEncontrada("Producto no encontrado")
@@ -174,9 +181,7 @@ async def obtener_historial(
     offset = (page - 1) * page_size
 
     count_result = await session.execute(
-        select(func.count())
-        .select_from(KardexMovimiento)
-        .where(*filters)
+        select(func.count()).select_from(KardexMovimiento).where(*filters)
     )
     total: int = int(count_result.scalar_one())
 

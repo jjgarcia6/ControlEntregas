@@ -6,7 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.usuario import Usuario
-from app.schemas.usuario import PasswordUpdate, UsuarioCreate, UsuarioResponse, UsuarioUpdate
+from app.schemas.usuario import (
+    PasswordUpdate,
+    UsuarioCreate,
+    UsuarioResponse,
+    UsuarioUpdate,
+)
 from app.utils.audit import auditar
 from app.utils.exceptions import ConflictoUnicidad, EntidadNoEncontrada
 
@@ -29,9 +34,7 @@ async def crear(
     payload_despues: dict[str, Any] | None = None,
 ) -> UsuarioResponse:
     email_str = str(datos.email)
-    existing = await session.execute(
-        select(Usuario).where(Usuario.email == email_str)
-    )
+    existing = await session.execute(select(Usuario).where(Usuario.email == email_str))
     if existing.scalar_one_or_none() is not None:
         raise ConflictoUnicidad(f"Ya existe un usuario con email '{email_str}'")
 
@@ -75,9 +78,7 @@ async def actualizar(
                 select(Usuario).where(Usuario.email == new_email)
             )
             if existing.scalar_one_or_none() is not None:
-                raise ConflictoUnicidad(
-                    f"Ya existe un usuario con email '{new_email}'"
-                )
+                raise ConflictoUnicidad(f"Ya existe un usuario con email '{new_email}'")
         usuario.email = new_email
 
     if datos.nombre is not None:

@@ -27,7 +27,9 @@ def _crear_jwt(usuario: Usuario) -> str:
         "rol": usuario.rol,
         "exp": expiration,
     }
-    return str(jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM))
+    return str(
+        jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    )
 
 
 async def login(
@@ -37,9 +39,7 @@ async def login(
     user_agent: str | None,
     session: AsyncSession,
 ) -> LoginResponse:
-    result = await session.execute(
-        select(Usuario).where(Usuario.email == email)
-    )
+    result = await session.execute(select(Usuario).where(Usuario.email == email))
     usuario = result.scalar_one_or_none()
 
     # Constant-time check: always run bcrypt to avoid timing attacks

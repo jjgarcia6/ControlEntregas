@@ -82,9 +82,7 @@ async def desde_xml(
     result = await session.execute(
         select(Xml)
         .where(Xml.id == xml_id)
-        .options(
-            selectinload(Xml.items).selectinload(XmlItem.ingresos)
-        )
+        .options(selectinload(Xml.items).selectinload(XmlItem.ingresos))
     )
     xml = result.scalar_one_or_none()
     if xml is None:
@@ -147,7 +145,11 @@ async def desde_xml(
                 consumo_por_entrega[eid] = (entrega, Decimal("0"), Decimal("0"))
             _, qty, cost = consumo_por_entrega[eid]
             costo = detalle.cantidad_consumida * detalle.costo_unitario
-            consumo_por_entrega[eid] = (entrega, qty + detalle.cantidad_consumida, cost + costo)
+            consumo_por_entrega[eid] = (
+                entrega,
+                qty + detalle.cantidad_consumida,
+                cost + costo,
+            )
 
         for eid, (entrega, qty, cost) in consumo_por_entrega.items():
             entrega_ids_vistos.add(eid)
@@ -167,9 +169,7 @@ async def desde_xml(
         pe_result = await session.execute(
             select(PagoEntrega)
             .where(PagoEntrega.entrega_id.in_(entrega_ids_vistos))
-            .options(
-                selectinload(PagoEntrega.pago).selectinload(Pago.banco)
-            )
+            .options(selectinload(PagoEntrega.pago).selectinload(Pago.banco))
         )
         for pe in pe_result.scalars().all():
             if pe.pago_id not in pagos_vistos:
@@ -201,9 +201,7 @@ async def _xmls_origen_de_entrega(
 
     # Recopilar IDs de movimientos de ingreso
     kardex_ingreso_ids = [
-        det.kardex_ingreso_id
-        for item in entrega_items
-        for det in item.fifo_detalle
+        det.kardex_ingreso_id for item in entrega_items for det in item.fifo_detalle
     ]
 
     if not kardex_ingreso_ids:
@@ -213,9 +211,7 @@ async def _xmls_origen_de_entrega(
     xi_result = await session.execute(
         select(XmlItemIngreso)
         .where(XmlItemIngreso.kardex_movimiento_id.in_(kardex_ingreso_ids))
-        .options(
-            selectinload(XmlItemIngreso.xml_item).selectinload(XmlItem.xml)
-        )
+        .options(selectinload(XmlItemIngreso.xml_item).selectinload(XmlItem.xml))
     )
     ingreso_map: dict[uuid.UUID, XmlItemIngreso] = {
         xi.kardex_movimiento_id: xi for xi in xi_result.scalars().all()
@@ -251,9 +247,7 @@ async def desde_entrega(
     entrega_id: uuid.UUID, session: AsyncSession
 ) -> TrazabilidadEntregaResponse:
     """Árbol de trazabilidad partiendo de una Entrega hacia XMLs de origen y Pagos."""
-    result = await session.execute(
-        select(Entrega).where(Entrega.id == entrega_id)
-    )
+    result = await session.execute(select(Entrega).where(Entrega.id == entrega_id))
     entrega = result.scalar_one_or_none()
     if entrega is None:
         raise EntidadNoEncontrada("Entrega no encontrada")
@@ -286,9 +280,7 @@ async def desde_pago(
 ) -> TrazabilidadPagoResponse:
     """Árbol de trazabilidad partiendo de un Pago hacia Entregas y XMLs de origen."""
     result = await session.execute(
-        select(Pago)
-        .where(Pago.id == pago_id)
-        .options(selectinload(Pago.banco))
+        select(Pago).where(Pago.id == pago_id).options(selectinload(Pago.banco))
     )
     pago = result.scalar_one_or_none()
     if pago is None:

@@ -61,7 +61,10 @@ async def test_should_return_403_for_operador_accessing_audit(
 ) -> None:
     admin_token = await _admin_token(test_client)
     op_token = await _create_user_token(
-        test_client, admin_token, f"op_audit_{uuid.uuid4().hex[:6]}@test.com", "operador"
+        test_client,
+        admin_token,
+        f"op_audit_{uuid.uuid4().hex[:6]}@test.com",
+        "operador",
     )
     resp = await test_client.get("/audit", headers=_auth(op_token))
     assert resp.status_code == 403
@@ -73,7 +76,10 @@ async def test_should_return_403_for_lectura_accessing_audit(
 ) -> None:
     admin_token = await _admin_token(test_client)
     lec_token = await _create_user_token(
-        test_client, admin_token, f"lec_audit_{uuid.uuid4().hex[:6]}@test.com", "lectura"
+        test_client,
+        admin_token,
+        f"lec_audit_{uuid.uuid4().hex[:6]}@test.com",
+        "lectura",
     )
     resp = await test_client.get("/audit", headers=_auth(lec_token))
     assert resp.status_code == 403

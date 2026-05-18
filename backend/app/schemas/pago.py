@@ -8,9 +8,13 @@ from app.models.pago import TipoCuenta
 
 
 class PagoItemRequest(BaseModel):
-    entrega_id: uuid.UUID = Field(..., description="ID de la entrega a la que se aplica el monto")
+    entrega_id: uuid.UUID = Field(
+        ..., description="ID de la entrega a la que se aplica el monto"
+    )
     monto_aplicado: Decimal = Field(
-        ..., gt=0, description="Monto aplicado; no puede superar saldo_pendiente de la entrega"
+        ...,
+        gt=0,
+        description="Monto aplicado; no puede superar saldo_pendiente de la entrega",
     )
 
 
@@ -22,17 +26,26 @@ class PagoRequest(BaseModel):
         max_length=100,
         description="Número transcrito del comprobante físico; no es único en el sistema",
     )
-    fecha_pago: date = Field(..., description="Fecha en que se realizó el pago (YYYY-MM-DD)")
+    fecha_pago: date = Field(
+        ..., description="Fecha en que se realizó el pago (YYYY-MM-DD)"
+    )
     banco_id: uuid.UUID = Field(..., description="ID del banco del catálogo")
     tipo_cuenta: TipoCuenta = Field(..., description="Tipo de instrumento de pago")
     nombre_titular: str = Field(
-        ..., min_length=1, max_length=255, description="Titular de la cuenta o emisor del cheque"
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Titular de la cuenta o emisor del cheque",
     )
     valor_total: Decimal = Field(
-        ..., gt=0, description="Valor total del comprobante; debe igualar la suma de distribuciones"
+        ...,
+        gt=0,
+        description="Valor total del comprobante; debe igualar la suma de distribuciones",
     )
     distribuciones: list[PagoItemRequest] = Field(
-        ..., min_length=1, description="Distribución del pago entre entregas activas con saldo"
+        ...,
+        min_length=1,
+        description="Distribución del pago entre entregas activas con saldo",
     )
 
 
@@ -52,7 +65,9 @@ class PagoResponse(BaseModel):
     numero_comprobante: str = Field(..., description="Número del comprobante de pago")
     fecha_pago: date = Field(..., description="Fecha del pago")
     banco_id: uuid.UUID = Field(..., description="ID del banco")
-    banco_nombre: str = Field(..., description="Nombre del banco (desnormalizado para UI)")
+    banco_nombre: str = Field(
+        ..., description="Nombre del banco (desnormalizado para UI)"
+    )
     tipo_cuenta: str = Field(..., description="Tipo de instrumento de pago")
     nombre_titular: str = Field(..., description="Nombre del titular")
     valor_total: Decimal = Field(..., description="Valor total del comprobante")
@@ -72,6 +87,10 @@ class EntregaPendienteResponse(BaseModel):
 
     id: uuid.UUID = Field(..., description="ID de la entrega")
     numero: int = Field(..., description="Número secuencial de la entrega")
-    snap_nombre: str = Field(..., description="Nombre del destinatario (snapshot inmutable)")
+    snap_nombre: str = Field(
+        ..., description="Nombre del destinatario (snapshot inmutable)"
+    )
     total_entrega: Decimal = Field(..., description="Valor total de la entrega")
-    saldo_pendiente: Decimal = Field(..., description="Saldo no cobrado; nunca negativo")
+    saldo_pendiente: Decimal = Field(
+        ..., description="Saldo no cobrado; nunca negativo"
+    )

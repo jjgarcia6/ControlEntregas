@@ -37,7 +37,17 @@ def validar_identificacion(valor: str) -> dict[str, str]:
 
     if longitud == 13:
         sufijo = valor[10:]
-        if sufijo not in ("001", "002", "003", "004", "005", "006", "007", "008", "009"):
+        if sufijo not in (
+            "001",
+            "002",
+            "003",
+            "004",
+            "005",
+            "006",
+            "007",
+            "008",
+            "009",
+        ):
             raise ValidacionNegocio(f"Sufijo de RUC inválido: {sufijo}")
         return {"tipo": "ruc", "identificacion": valor}
 

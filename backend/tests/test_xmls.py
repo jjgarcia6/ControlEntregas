@@ -4,13 +4,13 @@ import uuid
 from decimal import Decimal
 
 import pytest
+from app.models.producto import Producto
+from app.models.usuario import Usuario
+from app.models.xml import Xml
+from app.models.xml_item import XmlItem
 from httpx import AsyncClient
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.producto import Producto
-from app.models.xml import Xml
-from app.models.xml_item import XmlItem
 
 
 def _clave(n: int) -> str:
@@ -116,7 +116,12 @@ async def _create_user_token(
 ) -> str:
     await client.post(
         "/usuarios",
-        json={"email": email, "password": "Test1234!", "nombre": "Test User", "rol": rol},
+        json={
+            "email": email,
+            "password": "Test1234!",
+            "nombre": "Test User",
+            "rol": rol,
+        },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     return await _get_token(client, email, "Test1234!")
@@ -307,9 +312,14 @@ async def test_listar_xmls_excluye_inactivos(
     data, _ = await _post_xml(test_client, token, _clave(30))
     xml_id = uuid.UUID(data["id"])
 
+    usuario_result = await db_session.execute(
+        select(Usuario.id).where(Usuario.email == "admin@sistema.com")
+    )
+    usuario_id = usuario_result.scalar_one()
+
     xml_result = await db_session.execute(select(Xml).where(Xml.id == xml_id))
     xml = xml_result.scalar_one()
-    xml.soft_delete(xml_id)
+    xml.soft_delete(usuario_id)
     await db_session.flush()
 
     resp = await test_client.get("/xmls", headers={"Authorization": f"Bearer {token}"})

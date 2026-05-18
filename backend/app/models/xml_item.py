@@ -30,7 +30,9 @@ class XmlItem(AuditMixin, Base):
     descuento: Mapped[Decimal] = mapped_column(
         Numeric(12, 2), nullable=False, default=Decimal("0")
     )
-    precio_total_sin_imp: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    precio_total_sin_imp: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False
+    )
     tarifa_iva: Mapped[Decimal] = mapped_column(
         Numeric(5, 2), nullable=False, default=Decimal("0")
     )

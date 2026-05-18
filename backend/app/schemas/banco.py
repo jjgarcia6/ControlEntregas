@@ -6,12 +6,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class BancoCreate(BaseModel):
     model_config = ConfigDict(strict=True)
-    nombre: str = Field(..., min_length=1, max_length=150, description="Nombre del banco")
+    nombre: str = Field(
+        ..., min_length=1, max_length=150, description="Nombre del banco"
+    )
 
 
 class BancoUpdate(BaseModel):
     model_config = ConfigDict(strict=True)
-    nombre: str = Field(..., min_length=1, max_length=150, description="Nuevo nombre del banco")
+    nombre: str = Field(
+        ..., min_length=1, max_length=150, description="Nuevo nombre del banco"
+    )
 
 
 class BancoResponse(BaseModel):

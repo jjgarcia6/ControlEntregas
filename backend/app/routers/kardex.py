@@ -28,7 +28,9 @@ async def obtener_productos_con_saldo(
     )
 
 
-@router.get("/{producto_id}", response_model=PaginatedResponse[KardexMovimientoResponse])
+@router.get(
+    "/{producto_id}", response_model=PaginatedResponse[KardexMovimientoResponse]
+)
 async def obtener_historial(
     producto_id: uuid.UUID,
     page: int = 1,

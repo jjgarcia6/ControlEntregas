@@ -19,7 +19,9 @@ class Producto(AuditMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    codigo_principal: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    codigo_principal: Mapped[str] = mapped_column(
+        String(50), nullable=False, unique=True
+    )
     descripcion: Mapped[str] = mapped_column(String(300), nullable=False)
     unidad_medida: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     peso_unitario: Mapped[Decimal] = mapped_column(

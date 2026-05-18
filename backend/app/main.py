@@ -3,7 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import audit, auth, bancos, destinatarios, entregas, kardex, pagos, reportes, trazabilidad, usuarios, xmls
+from app.routers import (
+    audit,
+    auth,
+    bancos,
+    destinatarios,
+    entregas,
+    kardex,
+    pagos,
+    reportes,
+    trazabilidad,
+    usuarios,
+    xmls,
+)
 from app.schemas.common import HealthCheckResponse
 from app.utils.exceptions import (
     ConflictoUnicidad,
@@ -20,7 +32,9 @@ app = FastAPI(title="Control de Entregas", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.ENVIRONMENT == "development" else settings.CORS_ORIGINS,
+    allow_origins=(
+        ["*"] if settings.ENVIRONMENT == "development" else settings.CORS_ORIGINS
+    ),
     allow_credentials=settings.ENVIRONMENT != "development",
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,9 +77,7 @@ async def eliminacion_bloqueada_handler(
 
 
 @app.exception_handler(NoAutenticado)
-async def no_autenticado_handler(
-    request: Request, exc: NoAutenticado
-) -> JSONResponse:
+async def no_autenticado_handler(request: Request, exc: NoAutenticado) -> JSONResponse:
     return JSONResponse(status_code=401, content={"detail": exc.message})
 
 

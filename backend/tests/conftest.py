@@ -28,7 +28,9 @@ test_engine = create_async_engine(
 )
 
 # Skip destructive teardown when running against a shared DB such as Supabase.
-_SHARED_DB = "localhost" not in TEST_DATABASE_URL and "127.0.0.1" not in TEST_DATABASE_URL
+_SHARED_DB = (
+    "localhost" not in TEST_DATABASE_URL and "127.0.0.1" not in TEST_DATABASE_URL
+)
 
 
 @pytest_asyncio.fixture(scope="session")

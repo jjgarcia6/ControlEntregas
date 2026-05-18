@@ -10,6 +10,7 @@ from httpx import AsyncClient
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _clave(n: int) -> str:
     return f"8{n:04d}" + "0" * 44  # prefix 8 for trazabilidad tests
 
@@ -104,7 +105,9 @@ async def _setup_chain(client: AsyncClient, token: str, seq: int) -> dict:
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    prods_resp = await client.get("/kardex/productos", headers={"Authorization": f"Bearer {token}"})
+    prods_resp = await client.get(
+        "/kardex/productos", headers={"Authorization": f"Bearer {token}"}
+    )
     productos = prods_resp.json()["items"]
     prod = next(p for p in productos if p["codigo_principal"] == "TRAZ_PROD_01")
 
@@ -123,7 +126,10 @@ async def _setup_chain(client: AsyncClient, token: str, seq: int) -> dict:
 
     entrega_resp = await client.post(
         "/entregas",
-        json={"destinatario_id": dest_id, "items": [{"producto_id": prod["id"], "cantidad": 2.0}]},
+        json={
+            "destinatario_id": dest_id,
+            "items": [{"producto_id": prod["id"], "cantidad": 2.0}],
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert entrega_resp.status_code == 201, entrega_resp.json()
@@ -146,7 +152,10 @@ async def _setup_chain(client: AsyncClient, token: str, seq: int) -> dict:
             "nombre_titular": "Titular Traz",
             "valor_total": float(entrega["total_entrega"]),
             "distribuciones": [
-                {"entrega_id": entrega["id"], "monto_aplicado": float(entrega["total_entrega"])}
+                {
+                    "entrega_id": entrega["id"],
+                    "monto_aplicado": float(entrega["total_entrega"]),
+                }
             ],
         },
         headers={"Authorization": f"Bearer {token}"},
@@ -189,7 +198,13 @@ async def test_should_return_empty_lists_from_xml_when_no_entregas_exist(
     token = await _admin_token(test_client)
     xml_resp = await test_client.post(
         "/xmls",
-        files={"file": ("factura.xml", _xml_bytes(_clave(2), "TRAZ_NO_ENTREGA"), "text/xml")},
+        files={
+            "file": (
+                "factura.xml",
+                _xml_bytes(_clave(2), "TRAZ_NO_ENTREGA"),
+                "text/xml",
+            )
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert xml_resp.status_code == 201
@@ -315,7 +330,10 @@ async def test_should_allow_lectura_role_to_access_trazabilidad(
 ) -> None:
     admin_token = await _admin_token(test_client)
     lectura_token = await _create_user_token(
-        test_client, admin_token, f"lectura_traz_{uuid.uuid4().hex[:6]}@test.com", "lectura"
+        test_client,
+        admin_token,
+        f"lectura_traz_{uuid.uuid4().hex[:6]}@test.com",
+        "lectura",
     )
     resp = await test_client.get(
         f"/trazabilidad/xml/{uuid.uuid4()}",

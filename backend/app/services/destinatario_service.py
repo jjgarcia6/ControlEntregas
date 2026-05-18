@@ -55,9 +55,7 @@ async def crear(
     tipo = tipo_info["tipo"]
 
     existing = await session.execute(
-        select(Destinatario).where(
-            Destinatario.identificacion == datos.identificacion
-        )
+        select(Destinatario).where(Destinatario.identificacion == datos.identificacion)
     )
     if existing.scalar_one_or_none() is not None:
         raise ConflictoUnicidad(

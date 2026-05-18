@@ -74,10 +74,14 @@ def _to_decimal(value: str | None, default: Decimal = Decimal("0")) -> Decimal:
 
 def parsear(xml_content: str) -> XmlParseado:
     if len(xml_content.encode("utf-8")) > _MAX_SIZE_BYTES:
-        raise ValidacionNegocio("El archivo XML supera el tamaño máximo permitido de 5 MB")
+        raise ValidacionNegocio(
+            "El archivo XML supera el tamaño máximo permitido de 5 MB"
+        )
 
     try:
-        root = ET.fromstring(xml_content)  # nosec B314 — UTF-8 decoded, size-limited to 5 MB, no external entity loading
+        root = ET.fromstring(
+            xml_content
+        )  # nosec B314 — UTF-8 decoded, size-limited to 5 MB, no external entity loading
     except ET.ParseError:
         raise ValidacionNegocio("Archivo no es XML válido")
 
@@ -165,7 +169,9 @@ def parsear(xml_content: str) -> XmlParseado:
 
     items: list[ItemParseado] = []
     for detalle in detalles_elem.findall("detalle"):
-        cod_principal = _require_text(detalle, "codigoPrincipal", "codigoPrincipal del ítem")
+        cod_principal = _require_text(
+            detalle, "codigoPrincipal", "codigoPrincipal del ítem"
+        )
         cod_auxiliar = _get_text(detalle, "codigoAuxiliar")
         descripcion_item = _require_text(detalle, "descripcion", "descripcion del ítem")
         cantidad = _to_decimal(_get_text(detalle, "cantidad"))

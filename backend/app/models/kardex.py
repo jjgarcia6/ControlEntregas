@@ -29,10 +29,14 @@ class OrigenMovimiento(str, enum.Enum):
 class KardexMovimiento(AuditMixin, Base):
     __tablename__ = "kardex_movimientos"
     __table_args__ = (
-        Index("ix_kardex_movimientos_producto_fecha", "producto_id", "fecha_movimiento"),
+        Index(
+            "ix_kardex_movimientos_producto_fecha", "producto_id", "fecha_movimiento"
+        ),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     producto_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("productos.id"), nullable=False
     )
@@ -42,8 +46,12 @@ class KardexMovimiento(AuditMixin, Base):
     origen: Mapped[OrigenMovimiento] = mapped_column(
         SAEnum(OrigenMovimiento, name="origen_movimiento"), nullable=False
     )
-    documento_origen_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    fecha_movimiento: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    documento_origen_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    fecha_movimiento: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False
+    )
     cantidad: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
     peso_unitario: Mapped[Decimal] = mapped_column(
         Numeric(12, 4), nullable=False, default=Decimal("0")
@@ -59,7 +67,9 @@ class KardexMovimiento(AuditMixin, Base):
         UUID(as_uuid=True), ForeignKey("kardex_movimientos.id"), nullable=True
     )
 
-    producto: Mapped["Producto"] = relationship("Producto", back_populates="movimientos")
+    producto: Mapped["Producto"] = relationship(
+        "Producto", back_populates="movimientos"
+    )
     xml_item_ingreso: Mapped[Optional["XmlItemIngreso"]] = relationship(
         "XmlItemIngreso", back_populates="kardex_movimiento", uselist=False
     )
@@ -68,13 +78,18 @@ class KardexMovimiento(AuditMixin, Base):
 class XmlItemIngreso(AuditMixin, Base):
     __tablename__ = "xml_item_ingresos"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     xml_item_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("xml_items.id"), nullable=False
     )
     cantidad_ingresada: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
     kardex_movimiento_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("kardex_movimientos.id"), nullable=False, unique=True
+        UUID(as_uuid=True),
+        ForeignKey("kardex_movimientos.id"),
+        nullable=False,
+        unique=True,
     )
 
     xml_item: Mapped["XmlItem"] = relationship("XmlItem", back_populates="ingresos")

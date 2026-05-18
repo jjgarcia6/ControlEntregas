@@ -1,4 +1,5 @@
 """Unit tests for xml_parser_service — no DB required."""
+
 from decimal import Decimal
 
 import pytest

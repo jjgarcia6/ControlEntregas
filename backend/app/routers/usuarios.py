@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.auth import require_rol
 from app.dependencies.db import get_db
 from app.models.usuario import Usuario
-from app.schemas.usuario import PasswordUpdate, UsuarioCreate, UsuarioResponse, UsuarioUpdate
+from app.schemas.usuario import (
+    PasswordUpdate,
+    UsuarioCreate,
+    UsuarioResponse,
+    UsuarioUpdate,
+)
 from app.services import usuario_service
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])

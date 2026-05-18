@@ -38,7 +38,9 @@ class Pago(AuditMixin, Base):
         Index("ix_pagos_estado", "estado"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     numero_comprobante: Mapped[str] = mapped_column(String(100), nullable=False)
     fecha_pago: Mapped[date] = mapped_column(Date, nullable=False)
     banco_id: Mapped[uuid.UUID] = mapped_column(
@@ -53,7 +55,9 @@ class Pago(AuditMixin, Base):
         Numeric(12, 2), nullable=False, default=Decimal("0")
     )
     estado: Mapped[EstadoPago] = mapped_column(
-        SAEnum(EstadoPago, name="estado_pago"), nullable=False, default=EstadoPago.activo
+        SAEnum(EstadoPago, name="estado_pago"),
+        nullable=False,
+        default=EstadoPago.activo,
     )
 
     banco: Mapped["Banco"] = relationship("Banco", lazy="selectin")
@@ -70,7 +74,9 @@ class PagoEntrega(AuditMixin, Base):
         Index("ix_pago_entregas_entrega_id", "entrega_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     pago_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("pagos.id"), nullable=False
     )

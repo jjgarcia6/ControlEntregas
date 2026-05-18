@@ -17,6 +17,7 @@ from app.models.producto import Producto
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _clave(n: int) -> str:
     return f"6{n:04d}" + "0" * 44  # unique prefix 6 for entregas tests
 
@@ -99,13 +100,20 @@ async def _create_user_token(
 ) -> str:
     await client.post(
         "/usuarios",
-        json={"email": email, "password": "Test1234!", "nombre": "Test User", "rol": rol},
+        json={
+            "email": email,
+            "password": "Test1234!",
+            "nombre": "Test User",
+            "rol": rol,
+        },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     return await _get_token(client, email, "Test1234!")
 
 
-async def _crear_destinatario(client: AsyncClient, token: str, identificacion: str) -> dict:
+async def _crear_destinatario(
+    client: AsyncClient, token: str, identificacion: str
+) -> dict:
     resp = await client.post(
         "/destinatarios",
         json={
@@ -164,18 +172,26 @@ async def _setup_producto_con_saldo(
 ) -> tuple[str, str]:
     """Ingresa XML y hace el ingreso al kardex. Retorna (xml_id, producto_id)."""
     xml = await _post_xml(
-        client, token, clave, codigo=codigo,
-        cantidad=cantidad, precio_unit=precio_unit, precio_total=precio_total
+        client,
+        token,
+        clave,
+        codigo=codigo,
+        cantidad=cantidad,
+        precio_unit=precio_unit,
+        precio_total=precio_total,
     )
     xml_id = xml["id"]
     item_id = xml["items"][0]["id"]
-    await _ingresar(client, token, xml_id, [{"xml_item_id": item_id, "cantidad": float(cantidad)}])
+    await _ingresar(
+        client, token, xml_id, [{"xml_item_id": item_id, "cantidad": float(cantidad)}]
+    )
     return xml_id, xml["items"][0]["id"]
 
 
 # ---------------------------------------------------------------------------
 # POST /entregas — contract tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_crear_entrega_valida_201(test_client: AsyncClient) -> None:
@@ -251,7 +267,9 @@ async def test_crear_entrega_cantidad_cero_422(test_client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
-async def test_crear_entrega_destinatario_inexistente_404(test_client: AsyncClient) -> None:
+async def test_crear_entrega_destinatario_inexistente_404(
+    test_client: AsyncClient,
+) -> None:
     token = await _admin_token(test_client)
     await _setup_producto_con_saldo(
         test_client, token, _clave(5), "ENT_V05", "10.0000", "10.0000", "100.00"
@@ -262,8 +280,10 @@ async def test_crear_entrega_destinatario_inexistente_404(test_client: AsyncClie
     prod = next(p for p in resp.json()["items"] if p["codigo_principal"] == "ENT_V05")
 
     _, status = await _crear_entrega(
-        test_client, str(uuid.uuid4()), str(uuid.uuid4()),
-        [{"producto_id": prod["id"], "cantidad": 1}]
+        test_client,
+        str(uuid.uuid4()),
+        str(uuid.uuid4()),
+        [{"producto_id": prod["id"], "cantidad": 1}],
     )
     assert status == 401  # invalid token → 401
 
@@ -271,11 +291,16 @@ async def test_crear_entrega_destinatario_inexistente_404(test_client: AsyncClie
 @pytest.mark.asyncio
 async def test_crear_entrega_rol_lectura_403(test_client: AsyncClient) -> None:
     admin = await _admin_token(test_client)
-    lectura = await _create_user_token(test_client, admin, "lectura_ent@test.com", "lectura")
+    lectura = await _create_user_token(
+        test_client, admin, "lectura_ent@test.com", "lectura"
+    )
     dest = await _crear_destinatario(test_client, admin, "1710050004001")
     resp = await test_client.post(
         "/entregas",
-        json={"destinatario_id": dest["id"], "items": [{"producto_id": str(uuid.uuid4()), "cantidad": 1}]},
+        json={
+            "destinatario_id": dest["id"],
+            "items": [{"producto_id": str(uuid.uuid4()), "cantidad": 1}],
+        },
         headers={"Authorization": f"Bearer {lectura}"},
     )
     assert resp.status_code == 403
@@ -285,7 +310,10 @@ async def test_crear_entrega_rol_lectura_403(test_client: AsyncClient) -> None:
 async def test_crear_entrega_sin_autenticacion_401(test_client: AsyncClient) -> None:
     resp = await test_client.post(
         "/entregas",
-        json={"destinatario_id": str(uuid.uuid4()), "items": [{"producto_id": str(uuid.uuid4()), "cantidad": 1}]},
+        json={
+            "destinatario_id": str(uuid.uuid4()),
+            "items": [{"producto_id": str(uuid.uuid4()), "cantidad": 1}],
+        },
     )
     assert resp.status_code == 401
 
@@ -293,6 +321,7 @@ async def test_crear_entrega_sin_autenticacion_401(test_client: AsyncClient) -> 
 # ---------------------------------------------------------------------------
 # GET /entregas
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_listar_entregas_200(test_client: AsyncClient) -> None:
@@ -320,6 +349,7 @@ async def test_listar_entregas_filtro_estado(test_client: AsyncClient) -> None:
 # ---------------------------------------------------------------------------
 # GET /entregas/{id}
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_obtener_entrega_200(test_client: AsyncClient) -> None:
@@ -359,6 +389,7 @@ async def test_obtener_entrega_inexistente_404(test_client: AsyncClient) -> None
 # ---------------------------------------------------------------------------
 # DELETE /entregas/{id}
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_eliminar_entrega_sin_pagos_204(
@@ -423,7 +454,9 @@ async def test_eliminar_entrega_ya_eliminada_404(test_client: AsyncClient) -> No
 @pytest.mark.asyncio
 async def test_eliminar_entrega_rol_lectura_403(test_client: AsyncClient) -> None:
     admin = await _admin_token(test_client)
-    lectura = await _create_user_token(test_client, admin, "lectura_del@test.com", "lectura")
+    lectura = await _create_user_token(
+        test_client, admin, "lectura_del@test.com", "lectura"
+    )
     resp = await test_client.delete(
         f"/entregas/{uuid.uuid4()}", headers={"Authorization": f"Bearer {lectura}"}
     )
@@ -433,6 +466,7 @@ async def test_eliminar_entrega_rol_lectura_403(test_client: AsyncClient) -> Non
 # ---------------------------------------------------------------------------
 # Invariantes de negocio
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_fifo_orden_cronologico(
@@ -444,28 +478,44 @@ async def test_fifo_orden_cronologico(
 
     # Lote A: 10 unidades a $5 c/u
     xml_a = await _post_xml(
-        test_client, token, _clave(10), codigo="ENT_FIFO01",
-        cantidad="10.0000", precio_unit="5.0000", precio_total="50.00"
+        test_client,
+        token,
+        _clave(10),
+        codigo="ENT_FIFO01",
+        cantidad="10.0000",
+        precio_unit="5.0000",
+        precio_total="50.00",
     )
     await _ingresar(
-        test_client, token, xml_a["id"],
-        [{"xml_item_id": xml_a["items"][0]["id"], "cantidad": 10}]
+        test_client,
+        token,
+        xml_a["id"],
+        [{"xml_item_id": xml_a["items"][0]["id"], "cantidad": 10}],
     )
 
     # Lote B: 15 unidades a $8 c/u (más reciente, código diferente para nueva clave)
     xml_b = await _post_xml(
-        test_client, token, _clave(11), codigo="ENT_FIFO01",
-        cantidad="15.0000", precio_unit="8.0000", precio_total="120.00"
+        test_client,
+        token,
+        _clave(11),
+        codigo="ENT_FIFO01",
+        cantidad="15.0000",
+        precio_unit="8.0000",
+        precio_total="120.00",
     )
     await _ingresar(
-        test_client, token, xml_b["id"],
-        [{"xml_item_id": xml_b["items"][0]["id"], "cantidad": 15}]
+        test_client,
+        token,
+        xml_b["id"],
+        [{"xml_item_id": xml_b["items"][0]["id"], "cantidad": 15}],
     )
 
     resp = await test_client.get(
         "/kardex/productos", headers={"Authorization": f"Bearer {token}"}
     )
-    prod = next(p for p in resp.json()["items"] if p["codigo_principal"] == "ENT_FIFO01")
+    prod = next(
+        p for p in resp.json()["items"] if p["codigo_principal"] == "ENT_FIFO01"
+    )
 
     # Pide 12 unidades: consume 10 del lote A y 2 del lote B
     entrega_data, status = await _crear_entrega(
@@ -512,7 +562,9 @@ async def test_saldo_producto_reducido_tras_entrega(
     resp = await test_client.get(
         "/kardex/productos", headers={"Authorization": f"Bearer {token}"}
     )
-    prod = next(p for p in resp.json()["items"] if p["codigo_principal"] == "ENT_SALDO01")
+    prod = next(
+        p for p in resp.json()["items"] if p["codigo_principal"] == "ENT_SALDO01"
+    )
     prod_id = prod["id"]
     saldo_antes = Decimal(str(prod["saldo_cantidad"]))
 
@@ -583,7 +635,9 @@ async def test_snapshot_destinatario_inmutable(
     resp = await test_client.get(
         "/kardex/productos", headers={"Authorization": f"Bearer {token}"}
     )
-    prod = next(p for p in resp.json()["items"] if p["codigo_principal"] == "ENT_SNAP01")
+    prod = next(
+        p for p in resp.json()["items"] if p["codigo_principal"] == "ENT_SNAP01"
+    )
 
     entrega_data, _ = await _crear_entrega(
         test_client, token, dest_id, [{"producto_id": prod["id"], "cantidad": 1}]
@@ -637,7 +691,9 @@ async def test_fifo_detalle_persiste_tras_eliminar_entrega(
     resp = await test_client.get(
         "/kardex/productos", headers={"Authorization": f"Bearer {token}"}
     )
-    prod = next(p for p in resp.json()["items"] if p["codigo_principal"] == "ENT_PDET01")
+    prod = next(
+        p for p in resp.json()["items"] if p["codigo_principal"] == "ENT_PDET01"
+    )
 
     entrega_data, _ = await _crear_entrega(
         test_client, token, dest["id"], [{"producto_id": prod["id"], "cantidad": 3}]

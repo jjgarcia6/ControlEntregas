@@ -3,7 +3,16 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Enum as SAEnum, ForeignKey, Index, Integer, Numeric, Sequence, String, Text
+from sqlalchemy import (
+    Enum as SAEnum,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    Sequence,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -30,9 +39,15 @@ class Entrega(AuditMixin, Base):
         Index("ix_entregas_estado", "estado"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     numero: Mapped[int] = mapped_column(
-        Integer, _numero_seq, server_default=_numero_seq.next_value(), nullable=False, unique=True
+        Integer,
+        _numero_seq,
+        server_default=_numero_seq.next_value(),
+        nullable=False,
+        unique=True,
     )
     destinatario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("destinatarios.id"), nullable=False
@@ -45,10 +60,14 @@ class Entrega(AuditMixin, Base):
     total_entrega: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     saldo_pendiente: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     estado: Mapped[EstadoEntrega] = mapped_column(
-        SAEnum(EstadoEntrega, name="estado_entrega"), nullable=False, default=EstadoEntrega.activa
+        SAEnum(EstadoEntrega, name="estado_entrega"),
+        nullable=False,
+        default=EstadoEntrega.activa,
     )
 
-    destinatario: Mapped["Destinatario"] = relationship("Destinatario", back_populates="entregas")
+    destinatario: Mapped["Destinatario"] = relationship(
+        "Destinatario", back_populates="entregas"
+    )
     items: Mapped[list["EntregaItem"]] = relationship(
         "EntregaItem", back_populates="entrega", lazy="select"
     )
@@ -57,7 +76,9 @@ class Entrega(AuditMixin, Base):
 class EntregaItem(AuditMixin, Base):
     __tablename__ = "entrega_items"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     entrega_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("entregas.id"), nullable=False
     )
@@ -68,15 +89,22 @@ class EntregaItem(AuditMixin, Base):
         UUID(as_uuid=True), ForeignKey("xml_items.id"), nullable=False
     )
     cantidad: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
-    peso_total: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False, default=Decimal("0"))
+    peso_total: Mapped[Decimal] = mapped_column(
+        Numeric(12, 4), nullable=False, default=Decimal("0")
+    )
     costo_unitario: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
     costo_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     kardex_movimiento_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("kardex_movimientos.id"), nullable=False, unique=True
+        UUID(as_uuid=True),
+        ForeignKey("kardex_movimientos.id"),
+        nullable=False,
+        unique=True,
     )
 
     entrega: Mapped["Entrega"] = relationship("Entrega", back_populates="items")
-    producto: Mapped["Producto"] = relationship("Producto", back_populates="entrega_items")
+    producto: Mapped["Producto"] = relationship(
+        "Producto", back_populates="entrega_items"
+    )
     fifo_detalle: Mapped[list["EntregaItemFifoDetalle"]] = relationship(
         "EntregaItemFifoDetalle", back_populates="entrega_item", lazy="select"
     )
@@ -90,7 +118,9 @@ class EntregaItemFifoDetalle(Base):
 
     __tablename__ = "entrega_item_fifo_detalle"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     entrega_item_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("entrega_items.id"), nullable=False
     )

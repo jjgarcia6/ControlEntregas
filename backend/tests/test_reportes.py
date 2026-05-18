@@ -1,25 +1,15 @@
 """Integration tests for /reportes endpoints."""
 
 import uuid
-from decimal import Decimal
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.banco import Banco
-from app.models.destinatario import Destinatario
-from app.models.entrega import Entrega, EntregaItem, EstadoEntrega
-from app.models.kardex import KardexMovimiento, OrigenMovimiento, TipoMovimiento
-from app.models.pago import Pago, PagoEntrega, TipoCuenta
-from app.models.producto import Producto
-from app.models.xml import Xml
-from app.models.xml_item import XmlItem
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _clave(n: int) -> str:
     return f"9{n:04d}" + "0" * 44
@@ -94,7 +84,9 @@ async def _auth(client: AsyncClient) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _upload_xml(client: AsyncClient, headers: dict, clave: str, codigo: str = "REP_PROD_01") -> dict:
+async def _upload_xml(
+    client: AsyncClient, headers: dict, clave: str, codigo: str = "REP_PROD_01"
+) -> dict:
     resp = await client.post(
         "/xmls",
         files={"file": ("factura.xml", _xml_bytes(clave, codigo), "text/xml")},
@@ -108,25 +100,27 @@ async def _ingresar_kardex(
     client: AsyncClient, headers: dict, xml_id: str, session: AsyncSession
 ) -> tuple[str, str]:
     """Ingresa todos los ítems pendientes del XML al Kardex. Returns (xml_item_id, producto_id)."""
-    resp = await client.get(f"/xmls/{xml_id}/pending-items", headers=headers)
-    items = resp.json()["items"]
+    resp = await client.get(f"/xmls/{xml_id}/pendientes", headers=headers)
+    items = resp.json()
     assert len(items) > 0
 
-    producto_id = items[0]["producto_id"]
-    xml_item_id = items[0]["xml_item_id"]
+    xml_item_id = items[0]["id"]
     cantidad = items[0]["cantidad_pendiente"]
 
-    await client.post(
-        "/kardex/ingresar",
-        json={"ingresos": [{"xml_item_id": xml_item_id, "cantidad": str(cantidad)}]},
+    ingreso_resp = await client.post(
+        f"/xmls/{xml_id}/ingresos",
+        json={"items": [{"xml_item_id": xml_item_id, "cantidad": cantidad}]},
         headers=headers,
     )
+    assert ingreso_resp.status_code == 201
+    producto_id = ingreso_resp.json()[0]["producto_id"]
     return xml_item_id, producto_id
 
 
 # ---------------------------------------------------------------------------
 # Reporte XMLs
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_should_return_xmls_report_filtered_by_date_range(
@@ -139,7 +133,11 @@ async def test_should_return_xmls_report_filtered_by_date_range(
 
     resp = await test_client.get(
         "/reportes/xmls",
-        params={"formato": "json", "fecha_desde": "2024-01-01", "fecha_hasta": "2024-12-31"},
+        params={
+            "formato": "json",
+            "fecha_desde": "2024-01-01",
+            "fecha_hasta": "2024-12-31",
+        },
         headers=headers,
     )
     assert resp.status_code == 200
@@ -157,7 +155,11 @@ async def test_should_return_empty_xmls_report_when_no_data_in_range(
     headers = await _auth(test_client)
     resp = await test_client.get(
         "/reportes/xmls",
-        params={"formato": "json", "fecha_desde": "2000-01-01", "fecha_hasta": "2000-01-02"},
+        params={
+            "formato": "json",
+            "fecha_desde": "2000-01-01",
+            "fecha_hasta": "2000-01-02",
+        },
         headers=headers,
     )
     assert resp.status_code == 200

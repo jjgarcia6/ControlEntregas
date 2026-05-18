@@ -74,7 +74,9 @@ async def obtener_por_id(
     return XmlResponse.model_validate(xml)
 
 
-@router.post("/{id}/ingresos", response_model=list[KardexMovimientoResponse], status_code=201)
+@router.post(
+    "/{id}/ingresos", response_model=list[KardexMovimientoResponse], status_code=201
+)
 async def ingresar_items(
     id: uuid.UUID,
     body: KardexIngresoRequest,
