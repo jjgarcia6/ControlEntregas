@@ -104,7 +104,6 @@ def _to_pdf(template_name: str, context: dict) -> bytes:  # type: ignore[type-ar
 
         return weasyprint.HTML(string=html).write_pdf()  # type: ignore[no-any-return]
     except (ImportError, OSError, RuntimeError):
-        titulo = context.get("titulo", "Reporte PDF")
         return _build_fallback_pdf()
 
 
