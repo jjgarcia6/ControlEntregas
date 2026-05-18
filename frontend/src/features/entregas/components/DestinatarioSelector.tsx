@@ -33,17 +33,14 @@ export function DestinatarioSelector({ onSelect }: DestinatarioSelectorProps) {
   useEffect(() => {
     if (debouncedId.length >= 10) {
       void refetch();
-      setShowCreateForm(false);
     } else {
       onSelect(null);
-      setShowCreateForm(false);
     }
   }, [debouncedId, refetch, onSelect]);
 
   useEffect(() => {
     if (data) {
       onSelect(data);
-      setShowCreateForm(false);
     } else if (error) {
       onSelect(null);
     }
@@ -51,9 +48,9 @@ export function DestinatarioSelector({ onSelect }: DestinatarioSelectorProps) {
 
   const handleChange = (value: string) => {
     setIdentificacion(value);
+    setShowCreateForm(false);
     if (!value.trim()) {
       onSelect(null);
-      setShowCreateForm(false);
     }
   };
 

@@ -88,7 +88,7 @@ async def ingresar_items(
             session=session,
             usuario_id=current_user.id,
         )
-    return [KardexMovimientoResponse.model_validate(m) for m in movimientos]
+    return await kardex_service.build_movimiento_responses(movimientos, session)
 
 
 @router.get("/{id}/pendientes", response_model=list[XmlItemPendienteResponse])

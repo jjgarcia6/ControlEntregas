@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import auth, bancos, destinatarios, entregas, kardex, usuarios, xmls
+from app.routers import audit, auth, bancos, destinatarios, entregas, kardex, pagos, reportes, trazabilidad, usuarios, xmls
 from app.schemas.common import HealthCheckResponse
 from app.utils.exceptions import (
     ConflictoUnicidad,
@@ -12,6 +12,7 @@ from app.utils.exceptions import (
     NoAutenticado,
     PermisoInsuficiente,
     SaldoInsuficiente,
+    ValidacionDistribucion,
     ValidacionNegocio,
 )
 
@@ -75,6 +76,13 @@ async def permiso_insuficiente_handler(
     return JSONResponse(status_code=403, content={"detail": exc.message})
 
 
+@app.exception_handler(ValidacionDistribucion)
+async def validacion_distribucion_handler(
+    request: Request, exc: ValidacionDistribucion
+) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"detail": exc.message})
+
+
 app.include_router(auth.router)
 app.include_router(usuarios.router)
 app.include_router(bancos.router)
@@ -82,6 +90,10 @@ app.include_router(destinatarios.router)
 app.include_router(xmls.router)
 app.include_router(kardex.router)
 app.include_router(entregas.router)
+app.include_router(pagos.router)
+app.include_router(trazabilidad.router)
+app.include_router(audit.router)
+app.include_router(reportes.router)
 
 
 @app.get("/", response_model=HealthCheckResponse)

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="subtitle">
+  Total entregas: {{ reporte.total_entregas }} |
+  Valor total: ${{ "%.2f"|format(reporte.total_valor) }} |
+  Cobrado: ${{ "%.2f"|format(reporte.total_cobrado) }} |
+  Pendiente: ${{ "%.2f"|format(reporte.total_pendiente) }}
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Fecha</th>
+      <th>Destinatario</th>
+      <th>Identificación</th>
+      <th>Total</th>
+      <th>Pendiente</th>
+      <th>Estado</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for fila in reporte.filas %}
+    <tr>
+      <td>{{ fila.numero }}</td>
+      <td>{{ fila.fecha_creacion }}</td>
+      <td>{{ fila.snap_nombre }}</td>
+      <td>{{ fila.snap_identificacion }}</td>
+      <td style="text-align:right">${{ "%.2f"|format(fila.total_entrega) }}</td>
+      <td style="text-align:right">${{ "%.2f"|format(fila.saldo_pendiente) }}</td>
+      <td class="tag-{{ fila.estado }}">{{ fila.estado }}</td>
+    </tr>
+    {% for item in fila.items %}
+    <tr class="sub-row">
+      <td colspan="2">↳ {{ item.codigo_principal }}</td>
+      <td colspan="2">{{ item.descripcion }}</td>
+      <td style="text-align:right">{{ "%.4f"|format(item.cantidad) }} uds</td>
+      <td style="text-align:right">${{ "%.2f"|format(item.costo_total) }}</td>
+      <td></td>
+    </tr>
+    {% endfor %}
+    {% endfor %}
+  </tbody>
+</table>
+<div class="totals">
+  <span>Total: ${{ "%.2f"|format(reporte.total_valor) }}</span>
+  <span>Cobrado: ${{ "%.2f"|format(reporte.total_cobrado) }}</span>
+  <span>Pendiente: ${{ "%.2f"|format(reporte.total_pendiente) }}</span>
+</div>
+{% endblock %}

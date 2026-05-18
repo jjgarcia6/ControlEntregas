@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ titulo }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #222; padding: 24px; }
+    h1 { font-size: 18px; color: #1a1a2e; margin-bottom: 4px; }
+    .subtitle { font-size: 11px; color: #555; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th { background-color: #1a1a2e; color: #fff; text-align: left; padding: 6px 8px; font-size: 10px; }
+    td { padding: 5px 8px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+    tr:nth-child(even) td { background-color: #f7f7f7; }
+    .sub-row td { background-color: #eef2ff; font-size: 10px; padding-left: 20px; }
+    .totals { margin-top: 16px; text-align: right; font-weight: bold; font-size: 12px; }
+    .totals span { display: inline-block; margin-left: 24px; }
+    .header { border-bottom: 2px solid #1a1a2e; padding-bottom: 10px; margin-bottom: 16px; }
+    .header p { font-size: 11px; color: #444; margin-top: 4px; }
+    .tag-activa { color: #16a34a; font-weight: bold; }
+    .tag-eliminada { color: #dc2626; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>{{ titulo }}</h1>
+    <p>Generado el {{ fecha_generacion }}</p>
+  </div>
+  {% block content %}{% endblock %}
+</body>
+</html>

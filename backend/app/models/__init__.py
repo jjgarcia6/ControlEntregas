@@ -4,6 +4,7 @@ from app.models.base import AuditMixin, Base
 from app.models.destinatario import Destinatario
 from app.models.entrega import Entrega, EntregaItem, EntregaItemFifoDetalle, EstadoEntrega
 from app.models.kardex import KardexMovimiento, OrigenMovimiento, TipoMovimiento, XmlItemIngreso
+from app.models.pago import EstadoPago, Pago, PagoEntrega, TipoCuenta
 from app.models.producto import Producto
 from app.models.usuario import Usuario
 from app.models.xml import Xml
@@ -19,9 +20,13 @@ __all__ = [
     "EntregaItem",
     "EntregaItemFifoDetalle",
     "EstadoEntrega",
+    "EstadoPago",
     "KardexMovimiento",
     "OrigenMovimiento",
+    "Pago",
+    "PagoEntrega",
     "Producto",
+    "TipoCuenta",
     "TipoMovimiento",
     "Usuario",
     "Xml",

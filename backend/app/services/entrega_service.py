@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.models.destinatario import Destinatario
 from app.models.entrega import Entrega, EntregaItem, EntregaItemFifoDetalle, EstadoEntrega
 from app.models.kardex import KardexMovimiento, OrigenMovimiento, TipoMovimiento
+from app.models.pago import Pago, PagoEntrega
 from app.models.producto import Producto
 from app.schemas.common import PaginatedResponse
 from app.schemas.entrega import (
@@ -18,8 +19,9 @@ from app.schemas.entrega import (
     EntregaRequest,
     EntregaResponse,
 )
+from app.schemas.pago import EntregaPendienteResponse
 from app.utils.audit import auditar
-from app.utils.exceptions import EntidadNoEncontrada, SaldoInsuficiente
+from app.utils.exceptions import EliminacionBloqueada, EntidadNoEncontrada, SaldoInsuficiente
 from app.utils.fifo import LoteFIFO, calcular_consumo_fifo
 
 
@@ -269,9 +271,22 @@ async def eliminar_entrega(
     if entrega is None:
         raise EntidadNoEncontrada("Entrega no encontrada")
 
-    # Fase 5 agrega pago_entregas; cuando exista, verificar aquí con:
-    # SELECT pago_entregas WHERE entrega_id=... AND is_active=True
-    # → EliminacionBloqueada con lista de comprobantes si los hay.
+    pagos_result = await session.execute(
+        select(Pago)
+        .join(PagoEntrega, PagoEntrega.pago_id == Pago.id)
+        .where(
+            PagoEntrega.entrega_id == entrega_id,
+            PagoEntrega.is_active.is_(True),
+            Pago.is_active.is_(True),
+        )
+    )
+    pagos_activos = pagos_result.scalars().all()
+    if pagos_activos:
+        comprobantes = ", ".join(p.numero_comprobante for p in pagos_activos)
+        raise EliminacionBloqueada(
+            f"La entrega tiene pagos activos y no puede eliminarse. "
+            f"Comprobantes: {comprobantes}"
+        )
 
     for item in entrega.items:
         if not item.is_active:
@@ -320,6 +335,45 @@ async def eliminar_entrega(
     entrega.soft_delete(usuario_id)
     entrega.estado = EstadoEntrega.eliminada
     await session.flush()
+
+
+async def obtener_pendientes(
+    session: AsyncSession,
+    page: int,
+    page_size: int,
+    q: str | None = None,
+) -> PaginatedResponse[EntregaPendienteResponse]:
+    filters: list[ColumnElement[bool]] = [
+        Entrega.is_active.is_(True),
+        Entrega.estado == EstadoEntrega.activa,
+        Entrega.saldo_pendiente > 0,
+    ]
+
+    if q is not None:
+        filters.append(Entrega.snap_nombre.ilike(f"%{q}%"))
+
+    offset = (page - 1) * page_size
+
+    count_result = await session.execute(
+        select(func.count()).select_from(Entrega).where(*filters)
+    )
+    total = int(count_result.scalar_one())
+
+    result = await session.execute(
+        select(Entrega)
+        .where(*filters)
+        .order_by(Entrega.numero.asc())
+        .offset(offset)
+        .limit(page_size)
+    )
+    entregas = result.scalars().all()
+
+    return PaginatedResponse(
+        total=total,
+        page=page,
+        page_size=page_size,
+        items=[EntregaPendienteResponse.model_validate(e) for e in entregas],
+    )
 
 
 def _to_entrega_response(entrega: Entrega) -> EntregaResponse:

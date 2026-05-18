@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="subtitle">
+  Producto: <strong>{{ reporte.producto_codigo }}</strong> — {{ reporte.producto_descripcion }}<br>
+  Saldo actual: {{ "%.4f"|format(reporte.saldo_cantidad_actual) }} uds | ${{ "%.2f"|format(reporte.saldo_valor_actual) }}
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>Fecha Movimiento</th>
+      <th>Tipo</th>
+      <th>Origen</th>
+      <th>Cantidad</th>
+      <th>Costo Unit.</th>
+      <th>Costo Total</th>
+      <th>Saldo Cant.</th>
+      <th>Saldo Valor</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for mov in reporte.movimientos %}
+    <tr>
+      <td>{{ mov.fecha_movimiento }}</td>
+      <td>{{ mov.tipo }}</td>
+      <td>{{ mov.origen }}</td>
+      <td style="text-align:right">{{ "%.4f"|format(mov.cantidad) }}</td>
+      <td style="text-align:right">${{ "%.4f"|format(mov.costo_unitario) }}</td>
+      <td style="text-align:right">${{ "%.2f"|format(mov.costo_total) }}</td>
+      <td style="text-align:right">{{ "%.4f"|format(mov.saldo_cantidad) }}</td>
+      <td style="text-align:right">${{ "%.2f"|format(mov.saldo_valor) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="totals">
+  <span>Movimientos: {{ reporte.movimientos|length }}</span>
+  <span>Saldo Cantidad: {{ "%.4f"|format(reporte.saldo_cantidad_actual) }}</span>
+  <span>Saldo Valor: ${{ "%.2f"|format(reporte.saldo_valor_actual) }}</span>
+</div>
+{% endblock %}

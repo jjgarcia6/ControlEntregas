@@ -25,7 +25,7 @@ function renderContainer() {
 describe("LoginContainer", () => {
   beforeEach(() => {
     mockMutate.mockReset();
-    mockUseLogin.mockReturnValue({ mutate: mockMutate, isPending: false, error: null });
+    mockUseLogin.mockReturnValue({ mutate: mockMutate, isPending: false, error: null } as unknown as ReturnType<typeof useLogin>);
   });
 
   it("should display the error message returned by useLogin", () => {
@@ -33,13 +33,13 @@ describe("LoginContainer", () => {
       mutate: mockMutate,
       isPending: false,
       error: new Error("Credenciales inválidas"),
-    });
+    } as unknown as ReturnType<typeof useLogin>);
     renderContainer();
     expect(screen.getByText("Credenciales inválidas")).toBeInTheDocument();
   });
 
   it("should disable the submit button and change its label while isPending", () => {
-    mockUseLogin.mockReturnValue({ mutate: mockMutate, isPending: true, error: null });
+    mockUseLogin.mockReturnValue({ mutate: mockMutate, isPending: true, error: null } as unknown as ReturnType<typeof useLogin>);
     renderContainer();
     const button = screen.getByRole("button", { name: /iniciando sesión/i });
     expect(button).toBeDisabled();

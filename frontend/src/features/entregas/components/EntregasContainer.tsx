@@ -39,6 +39,7 @@ export function EntregasContainer() {
         entregas={data?.items ?? []}
         isLoading={isLoading}
         onVerDetalle={(id) => navigate(`/entregas/${id}`)}
+        onVerTrazabilidad={(id) => navigate(`/trazabilidad?tipo=entrega&id=${id}`)}
       />
     </div>
   );

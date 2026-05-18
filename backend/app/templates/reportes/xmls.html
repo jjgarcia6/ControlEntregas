@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="subtitle">Total XMLs: {{ reporte.total_xmls }} | Valor total: ${{ "%.2f"|format(reporte.total_valor) }}</p>
+<table>
+  <thead>
+    <tr>
+      <th>Número Factura</th>
+      <th>Fecha Emisión</th>
+      <th>Emisor</th>
+      <th>Total Sin Imp.</th>
+      <th>Importe Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for fila in reporte.filas %}
+    <tr>
+      <td>{{ fila.numero_factura }}</td>
+      <td>{{ fila.fecha_emision }}</td>
+      <td>{{ fila.razon_social_emisor }}</td>
+      <td style="text-align:right">${{ "%.2f"|format(fila.total_sin_impuestos) }}</td>
+      <td style="text-align:right">${{ "%.2f"|format(fila.importe_total) }}</td>
+    </tr>
+    {% for item in fila.items %}
+    <tr class="sub-row">
+      <td colspan="2">↳ {{ item.codigo_principal }}</td>
+      <td>{{ item.descripcion }}</td>
+      <td style="text-align:right">{{ "%.4f"|format(item.cantidad_documento) }} uds</td>
+      <td style="text-align:right">${{ "%.2f"|format(item.precio_total_sin_imp) }}</td>
+    </tr>
+    {% endfor %}
+    {% endfor %}
+  </tbody>
+</table>
+<div class="totals">
+  <span>Total XMLs: {{ reporte.total_xmls }}</span>
+  <span>Valor Total: ${{ "%.2f"|format(reporte.total_valor) }}</span>
+</div>
+{% endblock %}

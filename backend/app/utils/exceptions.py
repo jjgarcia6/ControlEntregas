@@ -38,3 +38,11 @@ class PermisoInsuficiente(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)
         self.message = message
+
+
+class ValidacionDistribucion(Exception):
+    """422 — Distribución de pago semánticamente inválida (cuadre o monto por entrega)."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message

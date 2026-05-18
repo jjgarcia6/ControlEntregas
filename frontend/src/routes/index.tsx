@@ -49,6 +49,22 @@ const EntregaDetallePage = lazy(() =>
   import("@/pages/EntregaDetalle").then((m) => ({ default: m.EntregaDetalle }))
 );
 
+const PagosPage = lazy(() =>
+  import("@/pages/Pagos").then((m) => ({ default: m.Pagos }))
+);
+
+const PagoNuevoPage = lazy(() =>
+  import("@/pages/PagoNuevo").then((m) => ({ default: m.PagoNuevo }))
+);
+
+const PagoDetallePage = lazy(() =>
+  import("@/pages/PagoDetalle").then((m) => ({ default: m.PagoDetalle }))
+);
+
+const TrazabilidadPage = lazy(() => import("@/pages/Trazabilidad"));
+const AuditoriaPage = lazy(() => import("@/pages/Auditoria"));
+const ReportesPage = lazy(() => import("@/pages/Reportes"));
+
 const fallback = <div>Cargando...</div>;
 
 export const router = createBrowserRouter([
@@ -148,6 +164,63 @@ export const router = createBrowserRouter([
                     element: <Suspense fallback={fallback}><EntregaNuevaPage /></Suspense>,
                   },
                 ],
+              },
+            ],
+          },
+          {
+            path: "pagos",
+            children: [
+              {
+                element: <ProtectedRoute roles={["admin", "operador", "lectura"]} />,
+                children: [
+                  {
+                    index: true,
+                    element: <Suspense fallback={fallback}><PagosPage /></Suspense>,
+                  },
+                  {
+                    path: ":id",
+                    element: <Suspense fallback={fallback}><PagoDetallePage /></Suspense>,
+                  },
+                ],
+              },
+              {
+                element: <ProtectedRoute roles={["admin", "operador"]} />,
+                children: [
+                  {
+                    path: "nuevo",
+                    element: <Suspense fallback={fallback}><PagoNuevoPage /></Suspense>,
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            path: "trazabilidad",
+            element: <ProtectedRoute roles={["admin", "operador", "lectura"]} />,
+            children: [
+              {
+                index: true,
+                element: <Suspense fallback={fallback}><TrazabilidadPage /></Suspense>,
+              },
+            ],
+          },
+          {
+            path: "auditoria",
+            element: <ProtectedRoute roles={["admin"]} />,
+            children: [
+              {
+                index: true,
+                element: <Suspense fallback={fallback}><AuditoriaPage /></Suspense>,
+              },
+            ],
+          },
+          {
+            path: "reportes",
+            element: <ProtectedRoute roles={["admin", "operador", "lectura"]} />,
+            children: [
+              {
+                index: true,
+                element: <Suspense fallback={fallback}><ReportesPage /></Suspense>,
               },
             ],
           },

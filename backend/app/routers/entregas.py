@@ -9,6 +9,7 @@ from app.dependencies.db import get_db
 from app.models.usuario import Usuario
 from app.schemas.common import PaginatedResponse
 from app.schemas.entrega import EntregaListItemResponse, EntregaRequest, EntregaResponse
+from app.schemas.pago import EntregaPendienteResponse
 from app.services import entrega_service
 
 router = APIRouter(prefix="/entregas", tags=["entregas"])
@@ -52,6 +53,22 @@ async def listar_entregas(
         estado=estado,
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
+    )
+
+
+@router.get("/pendientes", response_model=PaginatedResponse[EntregaPendienteResponse])
+async def listar_entregas_pendientes(
+    q: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
+    _: Usuario = Depends(_operador_roles),
+    session: AsyncSession = Depends(get_db),
+) -> PaginatedResponse[EntregaPendienteResponse]:
+    return await entrega_service.obtener_pendientes(
+        session=session,
+        page=page,
+        page_size=page_size,
+        q=q,
     )
 
 

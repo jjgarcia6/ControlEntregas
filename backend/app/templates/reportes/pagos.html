@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="subtitle">
+  Total pagos: {{ reporte.total_pagos }} | Valor total: ${{ "%.2f"|format(reporte.valor_total) }}
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>Comprobante</th>
+      <th>Fecha</th>
+      <th>Banco</th>
+      <th>Tipo Cuenta</th>
+      <th>Titular</th>
+      <th>Valor Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for fila in reporte.filas %}
+    <tr>
+      <td>{{ fila.numero_comprobante }}</td>
+      <td>{{ fila.fecha_pago }}</td>
+      <td>{{ fila.banco_nombre }}</td>
+      <td>{{ fila.tipo_cuenta }}</td>
+      <td>{{ fila.nombre_titular }}</td>
+      <td style="text-align:right">${{ "%.2f"|format(fila.valor_total) }}</td>
+    </tr>
+    {% for dist in fila.distribuciones %}
+    <tr class="sub-row">
+      <td colspan="3">↳ Entrega #{{ dist.entrega_numero }} — {{ dist.snap_nombre }}</td>
+      <td colspan="2"></td>
+      <td style="text-align:right">${{ "%.2f"|format(dist.monto_aplicado) }}</td>
+    </tr>
+    {% endfor %}
+    {% endfor %}
+  </tbody>
+</table>
+<div class="totals">
+  <span>Total Pagos: {{ reporte.total_pagos }}</span>
+  <span>Valor Total: ${{ "%.2f"|format(reporte.valor_total) }}</span>
+</div>
+{% endblock %}

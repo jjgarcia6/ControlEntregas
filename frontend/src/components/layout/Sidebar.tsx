@@ -1,11 +1,14 @@
 import {
-  BarChart3,
   Building2,
   ClipboardList,
+  CreditCard,
+  FileBarChart,
   FileText,
   FileUp,
   LayoutDashboard,
   Package,
+  ShieldCheck,
+  GitBranch,
   Truck,
   Users,
 } from "lucide-react";
@@ -66,6 +69,12 @@ const navItems: NavItem[] = [
     roles: ["admin", "operador", "lectura"],
   },
   {
+    label: "Pagos",
+    icon: CreditCard,
+    href: "/pagos",
+    roles: ["admin", "operador"],
+  },
+  {
     label: "Ingreso XML",
     icon: FileUp,
     href: "/xml/ingreso",
@@ -78,10 +87,22 @@ const navItems: NavItem[] = [
     roles: ["admin", "operador", "lectura"],
   },
   {
+    label: "Trazabilidad",
+    icon: GitBranch,
+    href: "/trazabilidad",
+    roles: ["admin", "operador", "lectura"],
+  },
+  {
+    label: "Auditoría",
+    icon: ShieldCheck,
+    href: "/auditoria",
+    roles: ["admin"],
+  },
+  {
     label: "Reportes",
-    icon: BarChart3,
+    icon: FileBarChart,
     href: "/reportes",
-    roles: ["admin", "lectura"],
+    roles: ["admin", "operador", "lectura"],
   },
 ];
 

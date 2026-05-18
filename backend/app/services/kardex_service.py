@@ -223,6 +223,25 @@ async def obtener_historial(
     )
 
 
+async def build_movimiento_responses(
+    movimientos: list[KardexMovimiento],
+    session: AsyncSession,
+) -> list[KardexMovimientoResponse]:
+    xml_item_ids = [
+        m.documento_origen_id for m in movimientos if m.origen == OrigenMovimiento.xml
+    ]
+    ref_map: dict[uuid.UUID, str] = {}
+    if xml_item_ids:
+        xml_ref_result = await session.execute(
+            select(XmlItem.id, Xml.numero_factura)
+            .join(Xml, XmlItem.xml_id == Xml.id)
+            .where(XmlItem.id.in_(xml_item_ids))
+        )
+        for item_id, numero_factura in xml_ref_result.all():
+            ref_map[item_id] = f"Factura {numero_factura}"
+    return [_mov_to_response(m, ref_map) for m in movimientos]
+
+
 def _mov_to_response(
     m: KardexMovimiento, ref_map: dict[uuid.UUID, str]
 ) -> KardexMovimientoResponse:

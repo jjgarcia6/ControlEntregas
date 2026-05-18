@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
+echo "==> Instalando dependencias del sistema (WeasyPrint)..."
+sudo apt-get update -qq
+sudo apt-get install -y --no-install-recommends \
+  libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 \
+  libgdk-pixbuf2.0-0 libcairo2
+
 echo "==> Instalando dependencias del backend..."
 cd /workspaces/controlEntregas/backend
 python -m venv .venv

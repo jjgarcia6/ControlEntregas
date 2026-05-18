@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 
@@ -8,6 +9,7 @@ import { XmlListTable } from "./XmlListTable";
 const PAGE_SIZE = 20;
 
 export function XmlListContainer() {
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useFetchXmls(page, PAGE_SIZE);
 
@@ -32,7 +34,10 @@ export function XmlListContainer() {
         </span>
       </div>
 
-      <XmlListTable items={data?.items ?? []} />
+      <XmlListTable
+        items={data?.items ?? []}
+        onVerTrazabilidad={(id) => navigate(`/trazabilidad?tipo=xml&id=${id}`)}
+      />
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
