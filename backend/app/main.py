@@ -33,7 +33,7 @@ app = FastAPI(title="Control de Entregas", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=(
-        ["*"] if settings.ENVIRONMENT == "development" else settings.CORS_ORIGINS
+        ["*"] if settings.ENVIRONMENT == "development" else settings.cors_origins_list
     ),
     allow_credentials=settings.ENVIRONMENT != "development",
     allow_methods=["*"],
