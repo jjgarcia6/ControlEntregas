@@ -110,7 +110,8 @@ def _to_pdf(template_name: str, context: dict) -> bytes:  # type: ignore[type-ar
 def _to_xlsx(titulo: str, headers: list[str], filas: list[list[object]]) -> bytes:
     wb = openpyxl.Workbook()
     ws = wb.active
-    assert ws is not None
+    if ws is None:
+        raise RuntimeError("No se pudo crear la hoja de cálculo")
     ws.title = titulo[:31]  # Excel sheet name limit
 
     bold = openpyxl.styles.Font(bold=True)
