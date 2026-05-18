@@ -22,7 +22,18 @@ artifacts:
   - id: specs
     generates: specs/**/*.md
     template: specs.md
-    description: Especificaciones funcionales BDD (Contrato de Interacción)
+    description: |
+      Especificaciones funcionales BDD (Contrato de Interacción).
+
+      Sistema de doble capa:
+      - `openspec/changes/{change}/specs/{domain}.md` — delta específico del cambio (lo que
+        este cambio AÑADE, MODIFICA o ELIMINA respecto al estado anterior del dominio).
+      - `openspec/specs/{domain}/spec.md` — spec global consolidada del dominio (acumula todos
+        los deltas de todas las fases; es la fuente de verdad viva del comportamiento esperado).
+
+      Al crear o archivar un cambio, el delta del cambio DEBE reflejarse en la spec global.
+      Los dominios válidos son: base, auth, usuarios, bancos, destinatarios, xmls, kardex,
+      entregas, pagos, trazabilidad, reportes.
     instruction: |
       Definir los comportamientos esperados del sistema mediante escenarios BDD.
       Reglas de calidad obligatorias:
