@@ -1,6 +1,7 @@
 """Integration tests for trazabilidad endpoints."""
 
 import uuid
+from typing import Dict
 
 import pytest
 from httpx import AsyncClient
@@ -87,7 +88,7 @@ async def _create_user_token(
     return await _get_token(client, email, "Test1234!")
 
 
-async def _setup_chain(client: AsyncClient, token: str, seq: int) -> dict:
+async def _setup_chain(client: AsyncClient, token: str, seq: int) -> Dict[str, str]:
     """Creates XML → kardex ingreso → entrega → pago chain. Returns IDs."""
     xml_resp = await client.post(
         "/xmls",

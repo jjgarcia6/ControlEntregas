@@ -2,6 +2,7 @@
 
 import uuid
 from decimal import Decimal
+from typing import Any, Dict, Tuple
 
 import pytest
 from app.models.producto import Producto
@@ -127,7 +128,9 @@ async def _create_user_token(
     return await _get_token(client, email, "Test1234!")
 
 
-async def _post_xml(client: AsyncClient, token: str, clave: str, **kwargs) -> dict:
+async def _post_xml(
+    client: AsyncClient, token: str, clave: str, **kwargs: Any
+) -> Tuple[Dict[str, Any], int]:
     resp = await client.post(
         "/xmls",
         files={"file": ("factura.xml", _xml_bytes(clave, **kwargs), "text/xml")},

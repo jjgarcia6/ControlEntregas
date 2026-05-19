@@ -1,6 +1,7 @@
 """Integration tests for /reportes endpoints."""
 
 import uuid
+from typing import Any, Dict, Tuple
 
 import pytest
 from httpx import AsyncClient
@@ -85,8 +86,11 @@ async def _auth(client: AsyncClient) -> dict[str, str]:
 
 
 async def _upload_xml(
-    client: AsyncClient, headers: dict, clave: str, codigo: str = "REP_PROD_01"
-) -> dict:
+    client: AsyncClient,
+    headers: Dict[str, str],
+    clave: str,
+    codigo: str = "REP_PROD_01",
+) -> Dict[str, Any]:
     resp = await client.post(
         "/xmls",
         files={"file": ("factura.xml", _xml_bytes(clave, codigo), "text/xml")},
@@ -97,8 +101,8 @@ async def _upload_xml(
 
 
 async def _ingresar_kardex(
-    client: AsyncClient, headers: dict, xml_id: str, session: AsyncSession
-) -> tuple[str, str]:
+    client: AsyncClient, headers: Dict[str, str], xml_id: str, session: AsyncSession
+) -> Tuple[str, str]:
     """Ingresa todos los ítems pendientes del XML al Kardex. Returns (xml_item_id, producto_id)."""
     resp = await client.get(f"/xmls/{xml_id}/pendientes", headers=headers)
     items = resp.json()
