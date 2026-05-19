@@ -25,7 +25,7 @@ from app.schemas.entrega import (
     EntregaResponse,
 )
 from app.schemas.pago import EntregaPendienteResponse
-from app.utils.audit import auditar
+from app.utils.audit import auditar, safe_dict, set_audit_payload
 from app.utils.exceptions import (
     EliminacionBloqueada,
     EntidadNoEncontrada,
@@ -194,6 +194,14 @@ async def crear_entrega(
     entrega.saldo_pendiente = total_entrega
 
     await session.flush()
+    set_audit_payload(
+        payload_despues=safe_dict(
+            numero=entrega.numero,
+            snap_nombre=entrega.snap_nombre,
+            snap_identificacion=entrega.snap_identificacion,
+            total_entrega=entrega.total_entrega,
+        )
+    )
     return entrega
 
 
@@ -282,6 +290,16 @@ async def eliminar_entrega(
     if entrega is None:
         raise EntidadNoEncontrada("Entrega no encontrada")
 
+    set_audit_payload(
+        payload_antes=safe_dict(
+            numero=entrega.numero,
+            snap_nombre=entrega.snap_nombre,
+            snap_identificacion=entrega.snap_identificacion,
+            total_entrega=entrega.total_entrega,
+            saldo_pendiente=entrega.saldo_pendiente,
+        )
+    )
+
     pagos_result = await session.execute(
         select(Pago)
         .join(PagoEntrega, PagoEntrega.pago_id == Pago.id)
@@ -323,7 +341,7 @@ async def eliminar_entrega(
 
             reversa = KardexMovimiento(
                 producto_id=producto.id,
-                tipo=TipoMovimiento.egreso,
+                tipo=TipoMovimiento.ingreso,
                 origen=OrigenMovimiento.reversa_entrega,
                 documento_origen_id=entrega.id,
                 fecha_movimiento=datetime.now(timezone.utc),

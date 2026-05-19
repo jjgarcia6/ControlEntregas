@@ -20,14 +20,14 @@
   <tbody>
     {% for mov in reporte.movimientos %}
     <tr>
-      <td>{{ mov.fecha_movimiento }}</td>
+      <td>{{ mov.fecha_movimiento.strftime("%d-%m-%Y %H:%M:%S") }}</td>
       <td>{{ mov.tipo }}</td>
       <td>{{ mov.origen }}</td>
-      <td style="text-align:right">{{ "%.4f"|format(mov.cantidad) }}</td>
-      <td style="text-align:right">${{ "%.4f"|format(mov.costo_unitario) }}</td>
-      <td style="text-align:right">${{ "%.2f"|format(mov.costo_total) }}</td>
-      <td style="text-align:right">{{ "%.4f"|format(mov.saldo_cantidad) }}</td>
-      <td style="text-align:right">${{ "%.2f"|format(mov.saldo_valor) }}</td>
+      <td style="text-align:right">{{ "%.2f"|format(mov.cantidad) }}</td>
+      <td style="text-align:right">{{ "%.2f"|format(mov.costo_unitario) }}</td>
+      <td style="text-align:right">{{ "%.2f"|format(mov.costo_total) }}</td>
+      <td style="text-align:right">{{ "%.2f"|format(mov.saldo_cantidad) }}</td>
+      <td style="text-align:right">{{ "%.2f"|format(mov.saldo_valor) }}</td>
     </tr>
     {% endfor %}
   </tbody>

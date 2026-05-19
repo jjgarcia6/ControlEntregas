@@ -17,6 +17,7 @@ import { ReporteTable } from "./ReporteTable";
 
 const COLUMNAS: Record<TipoReporte, string[]> = {
   xmls: [
+    "fecha_creacion",
     "numero_factura",
     "fecha_emision",
     "razon_social_emisor",
@@ -43,9 +44,9 @@ const COLUMNAS: Record<TipoReporte, string[]> = {
     "estado",
   ],
   pagos: [
+    "fecha_pago",
     "tipo_cuenta",
     "numero_comprobante",
-    "fecha_pago",
     "banco_nombre",
     "nombre_titular",
     "valor_total",
@@ -84,6 +85,7 @@ function buildFilas(
   if (!data) return [];
   if (tipo === "xmls") {
     return (data as ReporteXmlsResponseType).filas.map((f) => ({
+      fecha_creacion: formatearFecha(f.fecha_creacion),
       numero_factura: f.numero_factura,
       fecha_emision: f.fecha_emision,
       razon_social_emisor: f.razon_social_emisor,
@@ -116,9 +118,9 @@ function buildFilas(
   }
   if (tipo === "pagos") {
     return (data as ReportePagosResponseType).filas.map((f) => ({
+      fecha_pago: formatearFechaPago(f.fecha_pago),
       tipo_cuenta: f.tipo_cuenta,
       numero_comprobante: f.numero_comprobante,
-      fecha_pago: formatearFechaPago(f.fecha_pago),
       banco_nombre: f.banco_nombre,
       nombre_titular: f.nombre_titular,
       valor_total: Number(f.valor_total).toFixed(2),

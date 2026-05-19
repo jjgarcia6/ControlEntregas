@@ -11,6 +11,7 @@ export const auditLogItemResponseSchema = z.object({
   entidad_id: z.string().uuid().nullable().describe("ID de la entidad; null para LOGIN"),
   payload_antes: z.record(z.unknown()).nullable().describe("Estado antes del cambio"),
   payload_despues: z.record(z.unknown()).nullable().describe("Estado después del cambio"),
+  referencia: z.string().nullable().describe("Identificador legible del documento afectado"),
   ip: z.string().nullable().describe("IP del cliente"),
   created_at: z.string().describe("Fecha y hora del evento (ISO 8601)"),
 });

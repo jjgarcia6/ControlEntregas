@@ -41,6 +41,7 @@ export const reporteXmlItemRowSchema = z.object({
 
 export const reporteXmlRowSchema = z.object({
   xml_id: z.string().uuid(),
+  fecha_creacion: z.string(),
   numero_factura: z.string(),
   fecha_emision: z.string(),
   razon_social_emisor: z.string(),

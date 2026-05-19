@@ -4,6 +4,7 @@
 <table>
   <thead>
     <tr>
+      <th>Fecha Registro</th>
       <th>Número Factura</th>
       <th>Fecha Emisión</th>
       <th>Emisor</th>
@@ -14,6 +15,7 @@
   <tbody>
     {% for fila in reporte.filas %}
     <tr>
+      <td>{{ fila.fecha_creacion.strftime("%d-%m-%Y %H:%M:%S") }}</td>
       <td>{{ fila.numero_factura }}</td>
       <td>{{ fila.fecha_emision }}</td>
       <td>{{ fila.razon_social_emisor }}</td>
@@ -22,7 +24,7 @@
     </tr>
     {% for item in fila.items %}
     <tr class="sub-row">
-      <td colspan="2">↳ {{ item.codigo_principal }}</td>
+      <td colspan="3">↳ {{ item.codigo_principal }}</td>
       <td>{{ item.descripcion }}</td>
       <td style="text-align:right">{{ "%.4f"|format(item.cantidad_documento) }} uds</td>
       <td style="text-align:right">${{ "%.2f"|format(item.precio_total_sin_imp) }}</td>

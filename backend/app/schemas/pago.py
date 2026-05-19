@@ -57,6 +57,8 @@ class PagoItemResponse(BaseModel):
     entrega_id: uuid.UUID = Field(..., description="ID de la entrega")
     entrega_numero: int = Field(...,
                                 description="Número secuencial de la entrega")
+    snap_nombre: str = Field(..., description="Nombre del destinatario de la entrega")
+    snap_identificacion: str = Field(..., description="Identificación del destinatario de la entrega")
     monto_aplicado: Decimal = Field(...,
                                     description="Monto aplicado a esta entrega")
 

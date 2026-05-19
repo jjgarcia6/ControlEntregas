@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.banco import Banco
 from app.schemas.banco import BancoCreate, BancoResponse, BancoUpdate
-from app.utils.audit import auditar
+from app.utils.audit import auditar, safe_dict, set_audit_payload
 from app.utils.exceptions import ConflictoUnicidad, EntidadNoEncontrada
 
 
@@ -34,6 +34,7 @@ async def crear(
     nuevo = Banco(nombre=datos.nombre, created_by=usuario_id)
     session.add(nuevo)
     await session.flush()
+    set_audit_payload(payload_despues=safe_dict(nombre=nuevo.nombre))
     return BancoResponse.model_validate(nuevo)
 
 
@@ -55,6 +56,8 @@ async def actualizar(
     if banco is None:
         raise EntidadNoEncontrada("Banco no encontrado")
 
+    nombre_antes = banco.nombre
+
     if datos.nombre != banco.nombre:
         existing = await session.execute(
             select(Banco).where(Banco.nombre == datos.nombre)
@@ -65,4 +68,8 @@ async def actualizar(
     banco.nombre = datos.nombre
     banco.updated_by = usuario_id
     await session.flush()
+    set_audit_payload(
+        payload_antes=safe_dict(nombre=nombre_antes),
+        payload_despues=safe_dict(nombre=banco.nombre),
+    )
     return BancoResponse.model_validate(banco)

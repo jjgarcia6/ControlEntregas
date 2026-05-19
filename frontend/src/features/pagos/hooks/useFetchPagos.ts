@@ -9,6 +9,7 @@ interface PagosFiltros {
   fecha_hasta?: string;
   banco_id?: string;
   entrega_id?: string;
+  incluir_eliminados?: boolean;
 }
 
 export function useFetchPagos(
@@ -19,11 +20,12 @@ export function useFetchPagos(
   return useQuery({
     queryKey: ["pagos", filtros, page, pageSize],
     queryFn: async () => {
-      const params: Record<string, string | number> = { page, page_size: pageSize };
+      const params: Record<string, string | number | boolean> = { page, page_size: pageSize };
       if (filtros.fecha_desde) params.fecha_desde = filtros.fecha_desde;
       if (filtros.fecha_hasta) params.fecha_hasta = filtros.fecha_hasta;
       if (filtros.banco_id) params.banco_id = filtros.banco_id;
       if (filtros.entrega_id) params.entrega_id = filtros.entrega_id;
+      if (filtros.incluir_eliminados) params.incluir_eliminados = true;
 
       const { data } = await apiClient.get("/pagos", { params });
       return paginatedResponseSchema(pagoResponseSchema).parse(data);

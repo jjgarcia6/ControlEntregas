@@ -38,6 +38,8 @@ export const pagoItemResponseSchema = z.object({
   id: z.string().uuid(),
   entrega_id: z.string().uuid(),
   entrega_numero: z.number().int().positive(),
+  snap_nombre: z.string(),
+  snap_identificacion: z.string(),
   monto_aplicado: z.coerce.number(),
 });
 

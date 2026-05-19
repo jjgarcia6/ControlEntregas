@@ -22,7 +22,7 @@ from app.schemas.kardex import (
     KardexMovimientoResponse,
     ProductoConSaldoResponse,
 )
-from app.utils.audit import auditar
+from app.utils.audit import auditar, safe_dict, set_audit_payload
 from app.utils.exceptions import EntidadNoEncontrada, ValidacionNegocio
 
 
@@ -117,6 +117,22 @@ async def ingresar_items(
 
         movimientos.append(movimiento)
 
+    set_audit_payload(
+        payload_despues={
+            "xml_id": str(xml_id),
+            "total_movimientos": len(movimientos),
+            "productos": [
+                safe_dict(
+                    producto_id=m.producto_id,
+                    tipo=m.tipo.value,
+                    cantidad=m.cantidad,
+                    costo_unitario=m.costo_unitario,
+                    costo_total=m.costo_total,
+                )
+                for m in movimientos
+            ],
+        }
+    )
     return movimientos
 
 

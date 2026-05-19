@@ -17,7 +17,6 @@ export function ReporteFilters({ tipoActivo, onSubmit }: ReporteFiltersProps) {
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
   const [productoId, setProductoId] = useState("");
-  const [codigoPrincipal, setCodigoPrincipal] = useState("");
   const [destinatarioId] = useState("");
   const [estado, setEstado] = useState<"" | "activa" | "eliminada">("");
   const [bancoId, setBancoId] = useState("");
@@ -32,9 +31,6 @@ export function ReporteFilters({ tipoActivo, onSubmit }: ReporteFiltersProps) {
     if (fechaDesde) base.fecha_desde = fechaDesde;
     if (fechaHasta) base.fecha_hasta = fechaHasta;
 
-    if (tipoActivo === "xmls") {
-      if (codigoPrincipal) base.codigo_principal = codigoPrincipal;
-    }
     if (tipoActivo === "kardex") {
       if (productoId) base.producto_id = productoId;
     }
@@ -82,20 +78,6 @@ export function ReporteFilters({ tipoActivo, onSubmit }: ReporteFiltersProps) {
           className="w-40"
         />
       </div>
-
-      {/* XMLs: código principal */}
-      {tipoActivo === "xmls" && (
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="codigo_principal">Código producto</Label>
-          <Input
-            id="codigo_principal"
-            value={codigoPrincipal}
-            onChange={(e) => setCodigoPrincipal(e.target.value)}
-            placeholder="Ej: PROD-001"
-            className="w-40"
-          />
-        </div>
-      )}
 
       {/* Kardex: producto_id (requerido) */}
       {tipoActivo === "kardex" && (

@@ -17,6 +17,33 @@ from app.schemas.common import PaginatedResponse
 
 _MAX_EXPORT_ROWS = 50_000
 
+# Campos que identifican un documento de forma legible, por entidad
+_REFERENCIA_CAMPOS: dict[str, list[str]] = {
+    "pagos": ["numero_comprobante"],
+    "entregas": ["numero"],
+    "xmls": ["numero_factura", "clave_acceso"],
+    "usuarios": ["email"],
+    "bancos": ["nombre"],
+    "destinatarios": ["nombre"],
+    "productos": ["codigo_principal"],
+    "kardex_movimientos": ["tipo"],
+}
+
+
+def _extraer_referencia(
+    entidad: str,
+    payload_despues: dict[str, Any] | None,
+    payload_antes: dict[str, Any] | None,
+) -> str | None:
+    payload = payload_despues or payload_antes
+    if not payload:
+        return None
+    for campo in _REFERENCIA_CAMPOS.get(entidad, []):
+        val = payload.get(campo)
+        if val is not None:
+            return str(val)
+    return None
+
 
 async def consultar(
     *,
@@ -113,7 +140,11 @@ def _to_response(log: AuditLog, usuario_email: str | None) -> AuditLogItemRespon
         entidad_id=log.entidad_id,
         payload_antes=log.payload_antes,
         payload_despues=log.payload_despues,
+        referencia=_extraer_referencia(
+            log.entidad, log.payload_despues, log.payload_antes
+        ),
         ip=log.ip,
+        user_agent=log.user_agent,
         created_at=log.created_at,
     )
 
@@ -125,9 +156,11 @@ _CSV_FIELDS = [
     "accion",
     "entidad",
     "entidad_id",
+    "referencia",
     "payload_antes",
     "payload_despues",
     "ip",
+    "user_agent",
     "created_at",
 ]
 

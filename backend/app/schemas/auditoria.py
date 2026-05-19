@@ -32,8 +32,15 @@ class AuditLogItemResponse(BaseModel):
         ...,
         description="Estado de la entidad después del cambio (JSONB); None para SOFT_DELETE",
     )
+    referencia: str | None = Field(
+        ...,
+        description="Identificador legible extraído del payload (ej: número de comprobante)",
+    )
     ip: str | None = Field(
         ..., description="Dirección IP del cliente que originó la acción"
+    )
+    user_agent: str | None = Field(
+        ..., description="User-Agent del navegador/cliente que originó la acción"
     )
     created_at: datetime = Field(
         ..., description="Fecha y hora exacta del evento de auditoría (ISO 8601)"

@@ -15,7 +15,7 @@ from app.schemas.xml import (
     XmlPreviewResponse,
 )
 from app.services import xml_parser_service
-from app.utils.audit import auditar
+from app.utils.audit import auditar, safe_dict, set_audit_payload
 from app.utils.exceptions import ConflictoUnicidad, EntidadNoEncontrada
 
 
@@ -147,6 +147,14 @@ async def confirmar_ingreso(
             producto.updated_by = usuario_id
 
     await session.flush()
+    set_audit_payload(
+        payload_despues=safe_dict(
+            numero_factura=xml.numero_factura,
+            clave_acceso=xml.clave_acceso,
+            razon_social_emisor=xml.razon_social_emisor,
+            importe_total=xml.importe_total,
+        )
+    )
     return xml
 
 

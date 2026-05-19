@@ -21,7 +21,7 @@
   <tbody>
     {% for fila in reporte.filas %}
     <tr>
-      <td>{{ fila.fecha_creacion }}</td>
+      <td>{{ fila.fecha_creacion.strftime("%d-%m-%Y %H:%M:%S") }}</td>
       <td>{{ fila.numero }}</td>
       <td>{{ fila.snap_identificacion }}</td>
       <td>{{ fila.snap_nombre }}</td>

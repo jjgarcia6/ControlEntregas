@@ -14,6 +14,7 @@ interface PagosFiltros {
   fecha_desde?: string;
   fecha_hasta?: string;
   banco_id?: string;
+  incluir_eliminados?: boolean;
 }
 
 export function PagosContainer() {

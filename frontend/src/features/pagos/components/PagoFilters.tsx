@@ -8,6 +8,7 @@ interface PagosFiltros {
   fecha_desde?: string;
   fecha_hasta?: string;
   banco_id?: string;
+  incluir_eliminados?: boolean;
 }
 
 interface PagoFiltersProps {
@@ -17,18 +18,21 @@ interface PagoFiltersProps {
 export function PagoFilters({ onFilter }: PagoFiltersProps) {
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
+  const [incluirEliminados, setIncluirEliminados] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     onFilter({
       fecha_desde: fechaDesde || undefined,
       fecha_hasta: fechaHasta || undefined,
+      incluir_eliminados: incluirEliminados || undefined,
     });
   }
 
   function handleReset() {
     setFechaDesde("");
     setFechaHasta("");
+    setIncluirEliminados(false);
     onFilter({});
   }
 
@@ -53,6 +57,22 @@ export function PagoFilters({ onFilter }: PagoFiltersProps) {
           onChange={(e) => setFechaHasta(e.target.value)}
           className="w-40"
         />
+      </div>
+      <div className="flex flex-col gap-1">
+        <Label className="invisible select-none">_</Label>
+        <label
+          htmlFor="incluir_eliminados"
+          className="flex items-center gap-2 h-9 cursor-pointer text-sm"
+        >
+          <input
+            id="incluir_eliminados"
+            type="checkbox"
+            className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+            checked={incluirEliminados}
+            onChange={(e) => setIncluirEliminados(e.target.checked)}
+          />
+          Mostrar anulados
+        </label>
       </div>
       <Button type="submit" variant="secondary">
         Filtrar

@@ -89,6 +89,8 @@ export function PagoDetail({ pago }: PagoDetailProps) {
           <TableHeader>
             <TableRow>
               <TableHead>N° Entrega</TableHead>
+              <TableHead>Identificación</TableHead>
+              <TableHead>Destinatario</TableHead>
               <TableHead className="text-right">Monto Aplicado</TableHead>
             </TableRow>
           </TableHeader>
@@ -96,6 +98,8 @@ export function PagoDetail({ pago }: PagoDetailProps) {
             {pago.distribuciones.map((d) => (
               <TableRow key={d.id}>
                 <TableCell className="font-mono">#{d.entrega_numero}</TableCell>
+                <TableCell className="font-mono">{d.snap_identificacion}</TableCell>
+                <TableCell>{d.snap_nombre}</TableCell>
                 <TableCell className="text-right">
                   {formatCurrency(d.monto_aplicado)}
                 </TableCell>

@@ -12,7 +12,7 @@ from app.schemas.usuario import (
     UsuarioResponse,
     UsuarioUpdate,
 )
-from app.utils.audit import auditar
+from app.utils.audit import auditar, safe_dict, set_audit_payload
 from app.utils.exceptions import ConflictoUnicidad, EntidadNoEncontrada
 
 
@@ -48,6 +48,9 @@ async def crear(
     )
     session.add(nuevo)
     await session.flush()
+    set_audit_payload(
+        payload_despues=safe_dict(email=nuevo.email, nombre=nuevo.nombre, rol=nuevo.rol)
+    )
     return UsuarioResponse.model_validate(nuevo)
 
 
@@ -71,6 +74,8 @@ async def actualizar(
     if usuario is None:
         raise EntidadNoEncontrada("Usuario no encontrado")
 
+    antes = safe_dict(email=usuario.email, nombre=usuario.nombre, rol=usuario.rol)
+
     if datos.email is not None:
         new_email = str(datos.email)
         if new_email != usuario.email:
@@ -88,6 +93,10 @@ async def actualizar(
 
     usuario.updated_by = usuario_id
     await session.flush()
+    set_audit_payload(
+        payload_antes=antes,
+        payload_despues=safe_dict(email=usuario.email, nombre=usuario.nombre, rol=usuario.rol),
+    )
     return UsuarioResponse.model_validate(usuario)
 
 
@@ -116,6 +125,10 @@ async def cambiar_password(
     ).decode()
     usuario.updated_by = usuario_id
     await session.flush()
+    set_audit_payload(
+        payload_antes={"campo": "password_hash"},
+        payload_despues={"campo": "password_hash"},
+    )
     return UsuarioResponse.model_validate(usuario)
 
 
@@ -138,6 +151,9 @@ async def desactivar(
     if usuario is None:
         raise EntidadNoEncontrada("Usuario no encontrado")
 
+    set_audit_payload(
+        payload_antes=safe_dict(email=usuario.email, nombre=usuario.nombre, rol=usuario.rol)
+    )
     usuario.soft_delete(usuario_id)
     await session.flush()
     return UsuarioResponse.model_validate(usuario)

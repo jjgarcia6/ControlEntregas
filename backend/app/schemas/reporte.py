@@ -1,7 +1,7 @@
+import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
-import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -88,6 +88,7 @@ class ReporteXmlItemRow(BaseModel):
 
 class ReporteXmlRow(BaseModel):
     xml_id: uuid.UUID = Field(..., description="ID del XML.")
+    fecha_creacion: datetime = Field(..., description="Fecha de registro en el sistema.")
     numero_factura: str = Field(
         ..., description="Número de factura (estab-ptoEmi-sec)."
     )

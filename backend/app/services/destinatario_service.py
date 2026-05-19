@@ -10,7 +10,7 @@ from app.schemas.destinatario import (
     DestinatarioResponse,
     DestinatarioUpdate,
 )
-from app.utils.audit import auditar
+from app.utils.audit import auditar, safe_dict, set_audit_payload
 from app.utils.exceptions import ConflictoUnicidad, EntidadNoEncontrada
 from app.utils.validaciones import validar_identificacion
 
@@ -73,6 +73,15 @@ async def crear(
     )
     session.add(nuevo)
     await session.flush()
+    set_audit_payload(
+        payload_despues=safe_dict(
+            identificacion=nuevo.identificacion,
+            nombre=nuevo.nombre,
+            direccion=nuevo.direccion,
+            telefono=nuevo.telefono,
+            email=nuevo.email,
+        )
+    )
     return DestinatarioResponse.model_validate(nuevo)
 
 
@@ -96,6 +105,14 @@ async def actualizar(
     if destinatario is None:
         raise EntidadNoEncontrada("Destinatario no encontrado")
 
+    antes = safe_dict(
+        identificacion=destinatario.identificacion,
+        nombre=destinatario.nombre,
+        direccion=destinatario.direccion,
+        telefono=destinatario.telefono,
+        email=destinatario.email,
+    )
+
     if datos.nombre is not None:
         destinatario.nombre = datos.nombre
     if datos.direccion is not None:
@@ -109,4 +126,14 @@ async def actualizar(
 
     destinatario.updated_by = usuario_id
     await session.flush()
+    set_audit_payload(
+        payload_antes=antes,
+        payload_despues=safe_dict(
+            identificacion=destinatario.identificacion,
+            nombre=destinatario.nombre,
+            direccion=destinatario.direccion,
+            telefono=destinatario.telefono,
+            email=destinatario.email,
+        ),
+    )
     return DestinatarioResponse.model_validate(destinatario)

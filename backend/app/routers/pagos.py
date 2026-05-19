@@ -39,6 +39,7 @@ async def listar_pagos(
     fecha_hasta: date | None = None,
     banco_id: uuid.UUID | None = None,
     entrega_id: uuid.UUID | None = None,
+    incluir_eliminados: bool = False,
     page: int = 1,
     page_size: int = 20,
     _: Usuario = Depends(_lectura_roles),
@@ -52,6 +53,7 @@ async def listar_pagos(
         fecha_hasta=fecha_hasta,
         banco_id=banco_id,
         entrega_id=entrega_id,
+        incluir_eliminados=incluir_eliminados,
     )
 
 

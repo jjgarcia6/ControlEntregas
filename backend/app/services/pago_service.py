@@ -15,7 +15,7 @@ from app.schemas.pago import (
     PagoRequest,
     PagoResponse,
 )
-from app.utils.audit import auditar
+from app.utils.audit import auditar, safe_dict, set_audit_payload
 from app.utils.exceptions import (
     EntidadNoEncontrada,
     ValidacionDistribucion,
@@ -93,6 +93,15 @@ async def crear_pago(
         session.add(pago_entrega)
 
     await session.flush()
+    set_audit_payload(
+        payload_despues=safe_dict(
+            numero_comprobante=pago.numero_comprobante,
+            fecha_pago=pago.fecha_pago,
+            tipo_cuenta=pago.tipo_cuenta.value,
+            nombre_titular=pago.nombre_titular,
+            valor_total=pago.valor_total,
+        )
+    )
     return pago
 
 
@@ -114,6 +123,16 @@ async def eliminar_pago(
     pago = result.scalar_one_or_none()
     if pago is None:
         raise EntidadNoEncontrada("Pago no encontrado")
+
+    set_audit_payload(
+        payload_antes=safe_dict(
+            numero_comprobante=pago.numero_comprobante,
+            fecha_pago=pago.fecha_pago,
+            tipo_cuenta=pago.tipo_cuenta.value,
+            nombre_titular=pago.nombre_titular,
+            valor_total=pago.valor_total,
+        )
+    )
 
     for pe in pago.pago_entregas:
         if not pe.is_active:
@@ -141,8 +160,9 @@ async def listar_pagos(
     fecha_hasta: date | None = None,
     banco_id: uuid.UUID | None = None,
     entrega_id: uuid.UUID | None = None,
+    incluir_eliminados: bool = False,
 ) -> PaginatedResponse[PagoResponse]:
-    filters: list[ColumnElement[bool]] = [Pago.is_active.is_(True)]
+    filters: list[ColumnElement[bool]] = [] if incluir_eliminados else [Pago.is_active.is_(True)]
 
     if fecha_desde is not None:
         filters.append(Pago.fecha_pago >=
@@ -230,6 +250,8 @@ def _to_pago_detail_response(pago: Pago) -> PagoDetailResponse:
                 id=pe.id,
                 entrega_id=pe.entrega_id,
                 entrega_numero=pe.entrega.numero,
+                snap_nombre=pe.entrega.snap_nombre,
+                snap_identificacion=pe.entrega.snap_identificacion,
                 monto_aplicado=pe.monto_aplicado,
             )
             for pe in pago.pago_entregas

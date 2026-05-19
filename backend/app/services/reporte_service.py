@@ -172,6 +172,7 @@ async def reporte_xmls(
     filas = [
         ReporteXmlRow(
             xml_id=xml.id,
+            fecha_creacion=xml.created_at,
             numero_factura=xml.numero_factura,
             fecha_emision=xml.fecha_emision,
             razon_social_emisor=xml.razon_social_emisor,
@@ -213,6 +214,7 @@ async def reporte_xmls(
         return _to_pdf("xmls.html", ctx)
 
     headers = [
+        "Fecha Registro",
         "Número Factura",
         "Fecha Emisión",
         "Emisor",
@@ -221,6 +223,7 @@ async def reporte_xmls(
     ]
     rows: list[list[object]] = [
         [
+            f.fecha_creacion.strftime("%d-%m-%Y %H:%M:%S"),
             f.numero_factura,
             str(f.fecha_emision),
             f.razon_social_emisor,
@@ -308,7 +311,7 @@ async def reporte_kardex(
     ]
     rows: list[list[object]] = [
         [
-            str(m.fecha_movimiento),
+            m.fecha_movimiento.strftime("%d-%m-%Y %H:%M:%S"),
             m.tipo,
             m.origen,
             m.cantidad,
@@ -408,7 +411,7 @@ async def reporte_entregas(
     ]
     rows: list[list[object]] = [
         [
-            str(f.fecha_creacion),
+            f.fecha_creacion.strftime("%d-%m-%Y %H:%M:%S"),
             f.numero,
             f.snap_identificacion,
             f.snap_nombre,
@@ -496,9 +499,9 @@ async def reporte_pagos(
         return _to_pdf("pagos.html", ctx)
 
     headers = [
+        "Fecha Pago",
         "Tipo Cuenta",
         "Comprobante",
-        "Fecha Pago",
         "Banco",
         "Titular",
         "Valor Total",
@@ -507,9 +510,9 @@ async def reporte_pagos(
     ]
     rows: list[list[object]] = [
         [
+            f.fecha_pago.strftime("%d-%m-%Y %H:%M:%S"),
             f.tipo_cuenta,
             f.numero_comprobante,
-            f.fecha_pago.strftime("%d-%m-%Y %H:%M:%S"),
             f.banco_nombre,
             f.nombre_titular,
             f.valor_total,
