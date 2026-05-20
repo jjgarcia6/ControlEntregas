@@ -23,6 +23,10 @@ const Destinatarios = lazy(() =>
   import("@/pages/Destinatarios").then((m) => ({ default: m.Destinatarios })),
 );
 
+const DestinatarioNuevo = lazy(() =>
+  import("@/pages/DestinatarioNuevo").then((m) => ({ default: m.DestinatarioNuevo })),
+);
+
 const XmlIngreso = lazy(() =>
   import("@/pages/XmlIngreso").then((m) => ({ default: m.XmlIngreso })),
 );
@@ -107,11 +111,36 @@ export const router = createBrowserRouter([
           },
           {
             path: "destinatarios",
-            element: (
-              <Suspense fallback={fallback}>
-                <Destinatarios />
-              </Suspense>
-            ),
+            children: [
+              {
+                element: (
+                  <ProtectedRoute roles={["admin", "operador", "lectura"]} />
+                ),
+                children: [
+                  {
+                    index: true,
+                    element: (
+                      <Suspense fallback={fallback}>
+                        <Destinatarios />
+                      </Suspense>
+                    ),
+                  },
+                ],
+              },
+              {
+                element: <ProtectedRoute roles={["admin", "operador"]} />,
+                children: [
+                  {
+                    path: "nuevo",
+                    element: (
+                      <Suspense fallback={fallback}>
+                        <DestinatarioNuevo />
+                      </Suspense>
+                    ),
+                  },
+                ],
+              },
+            ],
           },
           {
             path: "xml",

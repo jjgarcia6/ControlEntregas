@@ -1,12 +1,14 @@
 import os
 import uuid
+from collections.abc import AsyncGenerator
 
 import bcrypt
+import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 
 load_dotenv()  # must run before os.getenv below
@@ -15,10 +17,11 @@ from app.config import settings  # noqa: E402
 from app.dependencies.db import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.base import Base  # noqa: E402
+from app.utils.rate_limit import email_failure_tracker, ip_login_limiter  # noqa: E402
 
 DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/control_entregas_test",
+    "TEST_DATABASE_URL",
+    os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/control_entregas_test"),
 ).strip()
 
 # NullPool + statement_cache_size=0: required for Supabase/PgBouncer transaction mode.
@@ -36,7 +39,7 @@ _SHARED_DB = "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL
 
 
 @pytest_asyncio.fixture(scope="session")
-async def setup_database():
+async def setup_database() -> AsyncGenerator[None, None]:
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         password_hash = bcrypt.hashpw(
@@ -63,7 +66,7 @@ async def setup_database():
 
 
 @pytest_asyncio.fixture
-async def db_connection(setup_database):
+async def db_connection(setup_database: None) -> AsyncGenerator[AsyncConnection, None]:
     """One real transaction per test; all requests within a test share this connection."""
     async with test_engine.connect() as conn:
         await conn.begin()
@@ -72,15 +75,25 @@ async def db_connection(setup_database):
 
 
 @pytest_asyncio.fixture
-async def db_session(db_connection):
+async def db_session(
+    db_connection: AsyncConnection,
+) -> AsyncGenerator[AsyncSession, None]:
     """Direct session access for tests that need it (most tests use test_client)."""
     session = AsyncSession(db_connection, join_transaction_mode="create_savepoint")
     yield session
     await session.close()
 
 
+@pytest.fixture(autouse=True)
+def reset_rate_limiters() -> None:
+    ip_login_limiter.clear_all()
+    email_failure_tracker.clear_all()
+
+
 @pytest_asyncio.fixture
-async def test_client(db_connection):
+async def test_client(
+    db_connection: AsyncConnection,
+) -> AsyncGenerator[AsyncClient, None]:
     """
     Each HTTP request within a test gets a fresh AsyncSession bound to db_connection.
     Using create_savepoint mode so session.begin_nested() (used by routers) creates
@@ -90,7 +103,7 @@ async def test_client(db_connection):
     Everything is rolled back when db_connection teardown calls conn.rollback().
     """
 
-    async def override_get_db():
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         session = AsyncSession(db_connection, join_transaction_mode="create_savepoint")
         try:
             yield session

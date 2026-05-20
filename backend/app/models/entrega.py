@@ -11,12 +11,12 @@ from sqlalchemy import (
     Numeric,
     Sequence,
     String,
-    Text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import AuditMixin, Base
+from app.utils.encryption import EncryptedString
 
 if TYPE_CHECKING:
     from app.models.destinatario import Destinatario
@@ -52,10 +52,10 @@ class Entrega(AuditMixin, Base):
     destinatario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("destinatarios.id"), nullable=False
     )
-    snap_identificacion: Mapped[str] = mapped_column(String(13), nullable=False)
-    snap_nombre: Mapped[str] = mapped_column(String(255), nullable=False)
-    snap_direccion: Mapped[str] = mapped_column(Text, nullable=False)
-    snap_telefono: Mapped[str] = mapped_column(String(20), nullable=False)
+    snap_identificacion: Mapped[str] = mapped_column(EncryptedString, nullable=False)
+    snap_nombre: Mapped[str] = mapped_column(EncryptedString, nullable=False)
+    snap_direccion: Mapped[str] = mapped_column(EncryptedString, nullable=False)
+    snap_telefono: Mapped[str] = mapped_column(EncryptedString, nullable=False)
     comentarios: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     total_entrega: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     saldo_pendiente: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)

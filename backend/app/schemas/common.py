@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 
 T = TypeVar("T")
 
+DEFAULT_PAGE_SIZE = 20
+
 
 class HealthCheckResponse(BaseModel):
     status: str = Field(..., description="Estado del servicio; siempre 'ok' si levantó")

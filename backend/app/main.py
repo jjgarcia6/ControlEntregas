@@ -22,6 +22,7 @@ from app.utils.exceptions import (
     ConflictoUnicidad,
     EliminacionBloqueada,
     EntidadNoEncontrada,
+    LimiteSolicitudes,
     NoAutenticado,
     PermisoInsuficiente,
     SaldoInsuficiente,
@@ -94,6 +95,13 @@ async def validacion_distribucion_handler(
     request: Request, exc: ValidacionDistribucion
 ) -> JSONResponse:
     return JSONResponse(status_code=422, content={"detail": exc.message})
+
+
+@app.exception_handler(LimiteSolicitudes)
+async def limite_solicitudes_handler(
+    request: Request, exc: LimiteSolicitudes
+) -> JSONResponse:
+    return JSONResponse(status_code=429, content={"detail": exc.message})
 
 
 app.include_router(auth.router)

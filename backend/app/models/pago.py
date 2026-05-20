@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import AuditMixin, Base
+from app.utils.encryption import EncryptedString
 
 if TYPE_CHECKING:
     from app.models.banco import Banco
@@ -50,7 +51,7 @@ class Pago(AuditMixin, Base):
     tipo_cuenta: Mapped[TipoCuenta] = mapped_column(
         SAEnum(TipoCuenta, name="tipo_cuenta"), nullable=False
     )
-    nombre_titular: Mapped[str] = mapped_column(String(255), nullable=False)
+    nombre_titular: Mapped[str] = mapped_column(EncryptedString, nullable=False)
     valor_total: Mapped[Decimal] = mapped_column(
         Numeric(12, 2), nullable=False)
     valor_aplicado: Mapped[Decimal] = mapped_column(

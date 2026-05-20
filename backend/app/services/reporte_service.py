@@ -37,6 +37,8 @@ from app.utils.exceptions import EntidadNoEncontrada
 
 FormatoLiteral = Literal["json", "pdf", "xlsx"]
 
+_MAX_REPORT_ROWS = 1000
+
 _TEMPLATES_DIR = Path(__file__).parent.parent / "templates" / "reportes"
 
 _jinja_env: jinja2.Environment | None = None
@@ -165,7 +167,7 @@ async def reporte_xmls(
         )
         stmt = stmt.where(subq)
 
-    stmt = stmt.limit(1000)
+    stmt = stmt.limit(_MAX_REPORT_ROWS)
     result = await session.execute(stmt)
     xmls = list(result.scalars().all())
 
@@ -258,7 +260,7 @@ async def reporte_kardex(
         stmt = stmt.where(KardexMovimiento.fecha_movimiento >= filtros.fecha_desde)
     if filtros.fecha_hasta is not None:
         stmt = stmt.where(KardexMovimiento.fecha_movimiento <= filtros.fecha_hasta)
-    stmt = stmt.limit(1000)
+    stmt = stmt.limit(_MAX_REPORT_ROWS)
 
     result = await session.execute(stmt)
     movimientos = list(result.scalars().all())
@@ -348,7 +350,7 @@ async def reporte_entregas(
     if filtros.destinatario_id is not None:
         stmt = stmt.where(Entrega.destinatario_id == filtros.destinatario_id)
 
-    stmt = stmt.limit(1000)
+    stmt = stmt.limit(_MAX_REPORT_ROWS)
     result = await session.execute(stmt)
     entregas = list(result.scalars().all())
 
@@ -453,7 +455,7 @@ async def reporte_pagos(
         )
         stmt = stmt.where(Pago.id.in_(subq))
 
-    stmt = stmt.limit(1000)
+    stmt = stmt.limit(_MAX_REPORT_ROWS)
     result = await session.execute(stmt)
     pagos = list(result.scalars().all())
 

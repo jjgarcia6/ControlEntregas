@@ -4,9 +4,16 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.banco import Banco
 from app.models.entrega import Entrega, EstadoEntrega
 from app.models.pago import EstadoPago, Pago
-from app.schemas.dashboard import DashboardResponse, EntregaPendienteRow
+from app.models.xml_item import XmlItem
+from app.schemas.dashboard import (
+    DashboardResponse,
+    EntregaPendienteRow,
+    UltimaEntregaRow,
+    UltimoPagoRow,
+)
 
 
 async def obtener_dashboard(session: AsyncSession) -> DashboardResponse:
@@ -52,6 +59,37 @@ async def obtener_dashboard(session: AsyncSession) -> DashboardResponse:
     )
     entregas_pendientes = list(pendientes_result.scalars().all())
 
+    xmls_pendientes_result = await session.execute(
+        select(func.count(func.distinct(XmlItem.xml_id))).where(
+            XmlItem.is_active.is_(True),
+            XmlItem.cantidad_pendiente > 0,
+        )
+    )
+    xmls_pendientes_count: int = int(xmls_pendientes_result.scalar_one())
+
+    ultimas_entregas_result = await session.execute(
+        select(Entrega)
+        .where(Entrega.is_active.is_(True))
+        .order_by(Entrega.created_at.desc())
+        .limit(5)
+    )
+    ultimas_entregas_rows = list(ultimas_entregas_result.scalars().all())
+
+    ultimos_pagos_result = await session.execute(
+        select(
+            Pago.id,
+            Pago.numero_comprobante,
+            Banco.nombre.label("nombre_banco"),
+            Pago.valor_total,
+            Pago.fecha_pago,
+        )
+        .join(Banco, Pago.banco_id == Banco.id)
+        .where(Pago.is_active.is_(True))
+        .order_by(Pago.created_at.desc())
+        .limit(5)
+    )
+    ultimos_pagos_rows = ultimos_pagos_result.all()
+
     return DashboardResponse(
         entregas_activas=entregas_activas,
         saldo_pendiente_total=saldo_pendiente_total,
@@ -60,5 +98,19 @@ async def obtener_dashboard(session: AsyncSession) -> DashboardResponse:
         pagos_mes_actual=pagos_mes_actual,
         entregas_mas_antiguas=[
             EntregaPendienteRow.model_validate(e) for e in entregas_pendientes
+        ],
+        xmls_pendientes_count=xmls_pendientes_count,
+        ultimas_entregas=[
+            UltimaEntregaRow.model_validate(e) for e in ultimas_entregas_rows
+        ],
+        ultimos_pagos=[
+            UltimoPagoRow(
+                id=r.id,
+                numero_comprobante=r.numero_comprobante,
+                nombre_banco=r.nombre_banco,
+                valor_total=r.valor_total,
+                fecha_pago=r.fecha_pago,
+            )
+            for r in ultimos_pagos_rows
         ],
     )

@@ -26,8 +26,13 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
     JWT_SECRET_KEY: str
+    # 32-byte URL-safe base64 Fernet key. Generate with:
+    # python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # Default is insecure dev key — MUST be overridden in production.
+    ENCRYPTION_KEY: str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRATION_MINUTES: int = 480
+    JWT_EXPIRATION_MINUTES: int = 60
+    JWT_REFRESH_LEEWAY_SECONDS: int = 7200
     CORS_ORIGINS: str = '["http://localhost:5173"]'
     ENVIRONMENT: str = "development"
     ADMIN_EMAIL: str = "admin@sistema.com"

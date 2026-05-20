@@ -42,9 +42,15 @@ cd backend && alembic downgrade -1   # test reversibility
 ```
 
 Backend requires a `.env` file in `backend/` — copy from `.env.example`:
+
 - `DATABASE_URL`: `postgresql+asyncpg://...`
 - `JWT_SECRET_KEY`: random secret
 - `ENVIRONMENT`: `development` | `production`
+- `JWT_EXPIRATION_MINUTES`: token lifetime (default 60)
+- `JWT_REFRESH_LEEWAY_SECONDS`: silent-refresh window after expiry (default 7200)
+- `ENCRYPTION_KEY`: Fernet key for PII column encryption — generate with:
+  `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+  **MUST be overridden in production. Never commit a real key.**
 
 Tests use `TEST_DATABASE_URL` env var. **IMPORTANT**: `TEST_DATABASE_URL` must point to a
 separate database from `DATABASE_URL` to avoid polluting development data.
@@ -90,7 +96,9 @@ Frontend requires `VITE_API_URL` env var pointing to the backend (e.g., `http://
 - **`utils/fifo.py`** — Pure function FIFO cost calculator. No DB dependency; directly testable. `calcular_consumo_fifo(lotes, cantidad)` raises `SaldoInsuficiente` if stock is insufficient.
 - **`utils/audit.py`** — `@auditar(accion, entidad)` decorator. Writes to `audit_log` after the decorated service function. Requires `session`, and optionally `entidad_id`, `usuario_id`, `payload_antes`, `payload_despues` as kwargs.
 - **`utils/validaciones.py`** — Ecuadorian cédula/RUC validator (módulo 11 algorithm). Raises `ValidacionNegocio` on failure.
-- **`utils/exceptions.py`** — Domain exception classes: `EntidadNoEncontrada` (404), `ConflictoUnicidad` (409), `ValidacionNegocio` (400), `SaldoInsuficiente` (400), `EliminacionBloqueada` (409), `PermisoInsuficiente` (403).
+- **`utils/exceptions.py`** — Domain exception classes: `EntidadNoEncontrada` (404), `ConflictoUnicidad` (409), `ValidacionNegocio` (400), `SaldoInsuficiente` (400), `EliminacionBloqueada` (409), `PermisoInsuficiente` (403), `LimiteSolicitudes` (429).
+- **`utils/encryption.py`** — `EncryptedString` SQLAlchemy `TypeDecorator` (Fernet transparent encrypt/decrypt), `hmac_hash(value)` for deterministic lookup hashes, and `mask_*` helpers for PII-safe audit payloads.
+- **`utils/rate_limit.py`** — In-memory sliding-window rate limiter. Two pre-configured instances: `ip_login_limiter` (10 calls/min per IP) and `email_failure_tracker` (5 failures/15 min per email). Call `clear_all()` on both in tests (autouse fixture in `conftest.py`).
 - **`templates/reportes/`** — Jinja2 + WeasyPrint HTML templates for PDF reports.
 - **`migrations/`** — Alembic. Every model change requires a migration with both `upgrade` and `downgrade`.
 
@@ -121,6 +129,40 @@ Frontend requires `VITE_API_URL` env var pointing to the backend (e.g., `http://
 - **Payments**: `SUM(monto_aplicado)` must equal `valor_total`; amount per delivery cannot exceed `saldo_pendiente`.
 - **Traceability**: The chain XML ↔ Kardex ↔ Entrega ↔ Pago must remain navigable in both directions. Trazabilidad endpoints include soft-deleted entities intentionally to show full history.
 
+## Security
+
+### Implemented measures
+
+- **RLS**: All 15 public tables have `ENABLE ROW LEVEL SECURITY`. No permissive policies are defined — the backend connects as `postgres`/`service_role` which bypasses RLS; `anon`/PostgREST access is deny-all by default.
+- **Password policy**: Minimum 8 characters, 1 uppercase, 1 digit, 1 special character. Enforced via Pydantic `@field_validator` in `UsuarioCreate` and `PasswordUpdate`.
+- **JWT expiration**: 60-minute access tokens. Silent refresh is allowed within a 2-hour leeway window (`JWT_REFRESH_LEEWAY_SECONDS`). Frontend queues concurrent requests during token refresh.
+- **Login rate limiting**: IP-based (10 req/min) applied in the router via `Depends`; email-based (5 failures/15 min) applied in `auth_service` — resets on successful login. Both raise `LimiteSolicitudes` → HTTP 429.
+- **`audit_log` immutability**: PostgreSQL `BEFORE DELETE` and `BEFORE UPDATE` triggers (`trg_audit_log_no_delete`, `trg_audit_log_no_update`) raise an exception on any attempt to modify the table directly.
+- **PII column encryption**: `destinatarios` (identificacion, nombre, direccion, telefono, email), `pagos` (nombre_titular), `entregas` (snap_identificacion, snap_nombre, snap_direccion, snap_telefono) are stored encrypted via `EncryptedString` (Fernet). Values are transparently decrypted by the TypeDecorator on read.
+- **Deterministic lookup**: `destinatarios.identificacion_hash` holds an HMAC-SHA256 of the plaintext `identificacion`. All WHERE queries on `identificacion` use the hash column; the encrypted column is display-only.
+- **Audit log PII masking**: Service functions pass `_audit_dict()` results (using `mask_*` helpers) to `set_audit_payload` instead of raw field values, so the audit log never stores plaintext PII.
+
+### Migration chain (current HEAD)
+
+```text
+... → 9f2a1b4c3d55
+      → a1b2c3d4e5f6  (enable RLS on all tables)
+      → b2c3d4e5f6a7  (audit_log immutable triggers)
+      → c3d4e5f6a7b8  (widen PII columns to TEXT + identificacion_hash)  ← HEAD
+```
+
+After applying `c3d4e5f6a7b8` on a database with existing plaintext data, run:
+
+```bash
+cd backend && python scripts/encrypt_existing_data.py
+```
+
+### Encrypted field conventions
+
+- **Never use encrypted columns in SQL WHERE clauses** — Fernet is non-deterministic; use the `_hash` companion column for equality, or fetch all and filter in Python for substring search.
+- **`snap_nombre` substring search** (`obtener_pendientes`) fetches all from DB, then filters in Python after decryption. Acceptable because the result set is bounded by active deliveries with outstanding balance.
+- **Adding a new encrypted field**: use `EncryptedString` as the column type in the model; if it needs equality lookup, add a `_hash VARCHAR(64)` companion column populated with `hmac_hash()`.
+
 ## Conventions
 
 - **Language**: Business logic documentation and variable names for domain concepts in Spanish. API routes, code structure, and technical identifiers in English.
@@ -146,11 +188,15 @@ AsyncSession(conn, join_transaction_mode="create_savepoint")
 
 This gives cross-request visibility within a test (same connection) with full rollback at test end.
 
+All httpx test requests share IP `"testclient"` via `ASGITransport`. An `autouse=True` fixture
+`reset_rate_limiters()` in `conftest.py` calls `ip_login_limiter.clear_all()` and
+`email_failure_tracker.clear_all()` before each test to prevent cross-test rate-limit bleed.
+
 ## OpenSpec Workflow
 
 Changes to this codebase follow the OpenSpec `spec-driven` schema defined in `openspec/`.
 
-```
+```text
 openspec/
 ├── config.yaml                      # Global context + per-artifact rules
 ├── schemas/spec-driven/
@@ -168,21 +214,19 @@ openspec/
 **Artifact dependency chain**: `proposal` → `specs` + `design` → `tasks` → `apply`
 
 **Phase order inside `tasks.md`** (non-negotiable):
-0. Contracts (Pydantic + Zod)
-1. Migrations (Alembic)
-2. Backend (services + routers)
-3. Frontend (hooks + components + pages)
-4. Security (ruff, mypy, bandit, eslint)
-5. Tests
+
+- 0: Contracts (Pydantic + Zod)
+- 1: Migrations (Alembic)
+- 2: Backend (services + routers)
+- 3: Frontend (hooks + components + pages)
+- 4: Security (ruff, mypy, bandit, eslint)
+- 5: Tests
 
 Use `/opsx:propose`, `/opsx:explore`, `/opsx:apply`, and `/opsx:archive` slash commands to
 work within this workflow.
 
 ## Known Pending Items
 
-- **TEST_DATABASE_URL isolation**: Must point to a separate database from `DATABASE_URL`. Direct
-  deletes in Supabase (bypassing the API) can leave orphaned `kardex_movimientos` because the
-  soft-delete constraint is enforced at the application layer, not the DB layer.
 - **DB integrity triggers**: `BEFORE DELETE` triggers on `entregas` and `entrega_items` tables
   to block direct SQL deletes (bypassing soft delete). Planned as a future OpenSpec change
   (`proteccion-integridad-bd`).

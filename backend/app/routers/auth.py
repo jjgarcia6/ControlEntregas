@@ -6,10 +6,18 @@ from app.dependencies.db import get_db
 from app.schemas.auth import LoginRequest, LoginResponse, RefreshResponse
 from app.services import auth_service
 from app.utils.exceptions import PermisoInsuficiente
+from app.utils.rate_limit import ip_login_limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _bearer = HTTPBearer(auto_error=False)
+
+
+def _check_ip_limit(request: Request) -> str | None:
+    ip = request.client.host if request.client else None
+    if ip:
+        ip_login_limiter.check_and_record(ip)
+    return ip
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -17,8 +25,8 @@ async def login(
     body: LoginRequest,
     request: Request,
     session: AsyncSession = Depends(get_db),
+    ip: str | None = Depends(_check_ip_limit),
 ) -> LoginResponse:
-    ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
     return await auth_service.login(
         email=str(body.email),

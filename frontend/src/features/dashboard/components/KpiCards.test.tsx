@@ -12,6 +12,9 @@ function makeData(overrides: Partial<DashboardResponse> = {}): DashboardResponse
     total_cobrado: 1499.5,
     pagos_mes_actual: 800.0,
     entregas_mas_antiguas: [],
+    xmls_pendientes_count: 0,
+    ultimas_entregas: [],
+    ultimos_pagos: [],
     ...overrides,
   };
 }

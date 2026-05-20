@@ -10,7 +10,7 @@ from app.dependencies.auth import require_rol
 from app.dependencies.db import get_db
 from app.models.usuario import Usuario
 from app.schemas.auditoria import AuditLogItemResponse
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import DEFAULT_PAGE_SIZE, PaginatedResponse
 from app.services import audit_service
 
 router = APIRouter(prefix="/audit", tags=["audit"])
@@ -26,7 +26,7 @@ async def consultar_audit_log(
     fecha_desde: date | None = None,
     fecha_hasta: date | None = None,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=100),
     _: Usuario = Depends(_solo_admin),
     session: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[AuditLogItemResponse]:

@@ -11,8 +11,26 @@ from app.schemas.destinatario import (
     DestinatarioUpdate,
 )
 from app.utils.audit import auditar, safe_dict, set_audit_payload
+from app.utils.encryption import (
+    hmac_hash,
+    mask_email,
+    mask_identificacion,
+    mask_nombre,
+    mask_telefono,
+)
 from app.utils.exceptions import ConflictoUnicidad, EntidadNoEncontrada
 from app.utils.validaciones import validar_identificacion
+
+
+def _audit_dict(d: Destinatario) -> dict[str, Any]:
+    """Returns a PII-masked snapshot safe for the audit log."""
+    return safe_dict(
+        identificacion=mask_identificacion(d.identificacion),
+        nombre=mask_nombre(d.nombre),
+        direccion="***",
+        telefono=mask_telefono(d.telefono),
+        email=mask_email(d.email) if d.email else None,
+    )
 
 
 async def listar(session: AsyncSession) -> list[DestinatarioResponse]:
@@ -29,7 +47,7 @@ async def buscar_por_identificacion(
 ) -> DestinatarioResponse:
     result = await session.execute(
         select(Destinatario).where(
-            Destinatario.identificacion == identificacion,
+            Destinatario.identificacion_hash == hmac_hash(identificacion),
             Destinatario.is_active.is_(True),
         )
     )
@@ -55,7 +73,9 @@ async def crear(
     tipo = tipo_info["tipo"]
 
     existing = await session.execute(
-        select(Destinatario).where(Destinatario.identificacion == datos.identificacion)
+        select(Destinatario).where(
+            Destinatario.identificacion_hash == hmac_hash(datos.identificacion)
+        )
     )
     if existing.scalar_one_or_none() is not None:
         raise ConflictoUnicidad(
@@ -65,6 +85,7 @@ async def crear(
     nuevo = Destinatario(
         tipo_identificacion=tipo,
         identificacion=datos.identificacion,
+        identificacion_hash=hmac_hash(datos.identificacion),
         nombre=datos.nombre,
         direccion=datos.direccion,
         telefono=datos.telefono,
@@ -73,15 +94,7 @@ async def crear(
     )
     session.add(nuevo)
     await session.flush()
-    set_audit_payload(
-        payload_despues=safe_dict(
-            identificacion=nuevo.identificacion,
-            nombre=nuevo.nombre,
-            direccion=nuevo.direccion,
-            telefono=nuevo.telefono,
-            email=nuevo.email,
-        )
-    )
+    set_audit_payload(payload_despues=_audit_dict(nuevo))
     return DestinatarioResponse.model_validate(nuevo)
 
 
@@ -105,13 +118,7 @@ async def actualizar(
     if destinatario is None:
         raise EntidadNoEncontrada("Destinatario no encontrado")
 
-    antes = safe_dict(
-        identificacion=destinatario.identificacion,
-        nombre=destinatario.nombre,
-        direccion=destinatario.direccion,
-        telefono=destinatario.telefono,
-        email=destinatario.email,
-    )
+    antes = _audit_dict(destinatario)
 
     if datos.nombre is not None:
         destinatario.nombre = datos.nombre
@@ -126,14 +133,5 @@ async def actualizar(
 
     destinatario.updated_by = usuario_id
     await session.flush()
-    set_audit_payload(
-        payload_antes=antes,
-        payload_despues=safe_dict(
-            identificacion=destinatario.identificacion,
-            nombre=destinatario.nombre,
-            direccion=destinatario.direccion,
-            telefono=destinatario.telefono,
-            email=destinatario.email,
-        ),
-    )
+    set_audit_payload(payload_antes=antes, payload_despues=_audit_dict(destinatario))
     return DestinatarioResponse.model_validate(destinatario)

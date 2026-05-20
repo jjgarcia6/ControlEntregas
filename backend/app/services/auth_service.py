@@ -12,6 +12,7 @@ from app.models.audit_log import AuditLog
 from app.models.usuario import Usuario
 from app.schemas.auth import LoginResponse, RefreshResponse, UsuarioPublico
 from app.utils.exceptions import PermisoInsuficiente
+from app.utils.rate_limit import email_failure_tracker
 
 # Pre-computed once at startup so nonexistent-user checks take the same time as real ones.
 _DUMMY_HASH: bytes = bcrypt.hashpw(b"__dummy__", bcrypt.gensalt(rounds=12))
@@ -39,6 +40,10 @@ async def login(
     user_agent: str | None,
     session: AsyncSession,
 ) -> LoginResponse:
+    email_key = email.lower()
+    if email_failure_tracker.is_blocked(email_key):
+        raise PermisoInsuficiente("Credenciales inválidas")
+
     result = await session.execute(select(Usuario).where(Usuario.email == email))
     usuario = result.scalar_one_or_none()
 
@@ -53,6 +58,7 @@ async def login(
         valid = False
 
     if not valid or usuario is None or not usuario.is_active:
+        email_failure_tracker.record_failure(email_key)
         raise PermisoInsuficiente("Credenciales inválidas")
 
     async with session.begin_nested():
@@ -69,6 +75,7 @@ async def login(
             )
         )
 
+    email_failure_tracker.reset(email_key)
     token = _crear_jwt(usuario)
     return LoginResponse(
         token=token,
@@ -87,10 +94,10 @@ async def refresh(token: str, session: AsyncSession) -> RefreshResponse:
             token,
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
-            options={"leeway": 86400},  # accept tokens expired up to 24h ago
+            options={"leeway": settings.JWT_REFRESH_LEEWAY_SECONDS},
         )
     except JWTError:
-        raise PermisoInsuficiente("Token inválido o expirado más de 24h")
+        raise PermisoInsuficiente("Token inválido o expirado")
 
     user_id_str: str | None = payload.get("sub")
     if user_id_str is None:

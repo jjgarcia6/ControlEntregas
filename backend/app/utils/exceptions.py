@@ -46,3 +46,11 @@ class ValidacionDistribucion(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)
         self.message = message
+
+
+class LimiteSolicitudes(Exception):
+    """429 — Demasiadas solicitudes en la ventana de tiempo."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message

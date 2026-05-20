@@ -372,36 +372,31 @@ async def obtener_pendientes(
     page_size: int,
     q: str | None = None,
 ) -> PaginatedResponse[EntregaPendienteResponse]:
-    filters: list[ColumnElement[bool]] = [
+    base_filters: list[ColumnElement[bool]] = [
         Entrega.is_active.is_(True),
         Entrega.estado == EstadoEntrega.activa,
         Entrega.saldo_pendiente > 0,
     ]
 
-    if q is not None:
-        filters.append(Entrega.snap_nombre.ilike(f"%{q}%"))
-
-    offset = (page - 1) * page_size
-
-    count_result = await session.execute(
-        select(func.count()).select_from(Entrega).where(*filters)
-    )
-    total = int(count_result.scalar_one())
-
     result = await session.execute(
-        select(Entrega)
-        .where(*filters)
-        .order_by(Entrega.numero.asc())
-        .offset(offset)
-        .limit(page_size)
+        select(Entrega).where(*base_filters).order_by(Entrega.numero.asc())
     )
-    entregas = result.scalars().all()
+    all_entregas = list(result.scalars().all())
+
+    # snap_nombre is encrypted — substring search must happen in Python after decryption.
+    if q is not None:
+        q_lower = q.lower()
+        all_entregas = [e for e in all_entregas if q_lower in e.snap_nombre.lower()]
+
+    total = len(all_entregas)
+    offset = (page - 1) * page_size
+    page_entregas = all_entregas[offset : offset + page_size]
 
     return PaginatedResponse(
         total=total,
         page=page,
         page_size=page_size,
-        items=[EntregaPendienteResponse.model_validate(e) for e in entregas],
+        items=[EntregaPendienteResponse.model_validate(e) for e in page_entregas],
     )
 
 

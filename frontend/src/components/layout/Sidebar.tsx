@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   GitBranch,
   Truck,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
@@ -48,6 +49,18 @@ const navItems: NavItem[] = [
     label: "Bancos",
     icon: Building2,
     href: "/bancos",
+    roles: ["admin", "operador"],
+  },
+  {
+    label: "Destinatarios",
+    icon: Users,
+    href: "/destinatarios",
+    roles: ["admin", "operador", "lectura"],
+  },
+  {
+    label: "Nuevo Destinatario",
+    icon: UserPlus,
+    href: "/destinatarios/nuevo",
     roles: ["admin", "operador"],
   },
   {

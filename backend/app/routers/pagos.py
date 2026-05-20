@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.auth import require_rol
 from app.dependencies.db import get_db
 from app.models.usuario import Usuario
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import DEFAULT_PAGE_SIZE, PaginatedResponse
 from app.schemas.pago import PagoDetailResponse, PagoRequest, PagoResponse
 from app.services import pago_service
 
@@ -41,7 +41,7 @@ async def listar_pagos(
     entrega_id: uuid.UUID | None = None,
     incluir_eliminados: bool = False,
     page: int = 1,
-    page_size: int = 20,
+    page_size: int = DEFAULT_PAGE_SIZE,
     _: Usuario = Depends(_lectura_roles),
     session: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[PagoResponse]:

@@ -38,7 +38,7 @@ async def crear(
     if existing.scalar_one_or_none() is not None:
         raise ConflictoUnicidad(f"Ya existe un usuario con email '{email_str}'")
 
-    password_hash = bcrypt.hashpw(datos.password.encode(), bcrypt.gensalt()).decode()
+    password_hash = bcrypt.hashpw(datos.password.encode(), bcrypt.gensalt(rounds=12)).decode()
     nuevo = Usuario(
         email=email_str,
         password_hash=password_hash,
@@ -121,7 +121,7 @@ async def cambiar_password(
         raise EntidadNoEncontrada("Usuario no encontrado")
 
     usuario.password_hash = bcrypt.hashpw(
-        datos.nueva_password.encode(), bcrypt.gensalt()
+        datos.nueva_password.encode(), bcrypt.gensalt(rounds=12)
     ).decode()
     usuario.updated_by = usuario_id
     await session.flush()
