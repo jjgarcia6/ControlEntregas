@@ -28,9 +28,8 @@ def _fernet() -> Fernet:
 class EncryptedString(TypeDecorator[str]):
     """Transparent Fernet encryption for string columns.
 
-    Stores URL-safe base64 ciphertext. Falls back to returning the raw value
-    when decryption fails so existing plaintext rows remain readable until
-    the data-migration script re-encrypts them.
+    Stores URL-safe base64 ciphertext. Raises on invalid ciphertext to avoid
+    silently accepting plaintext in encrypted columns.
     """
 
     impl = Text
@@ -46,8 +45,11 @@ class EncryptedString(TypeDecorator[str]):
             return None
         try:
             return _fernet().decrypt(value.encode()).decode()
-        except (InvalidToken, Exception):
-            return str(value)  # plaintext fallback during migration window
+        except InvalidToken as exc:
+            raise RuntimeError(
+                "Valor cifrado inválido en columna PII. "
+                "Verifique que ENCRYPTION_KEY no haya rotado sin re-cifrar datos."
+            ) from exc
 
 
 def hmac_hash(value: str) -> str:

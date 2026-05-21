@@ -33,25 +33,25 @@ from app.utils.exceptions import (
     ValidacionNegocio,
 )
 
+_IS_DEVELOPMENT = settings.ENVIRONMENT.strip().lower() == "development"
+
 logging.basicConfig(
-    level=logging.DEBUG if settings.ENVIRONMENT == "development" else logging.INFO,
+    level=logging.DEBUG if _IS_DEVELOPMENT else logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 
 app = FastAPI(
     title="Control de Entregas",
     version="0.1.0",
-    docs_url="/docs" if settings.ENVIRONMENT == "development" else None,
-    redoc_url="/redoc" if settings.ENVIRONMENT == "development" else None,
-    openapi_url="/openapi.json" if settings.ENVIRONMENT == "development" else None,
+    docs_url="/docs" if _IS_DEVELOPMENT else None,
+    redoc_url="/redoc" if _IS_DEVELOPMENT else None,
+    openapi_url="/openapi.json" if _IS_DEVELOPMENT else None,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=(
-        ["*"] if settings.ENVIRONMENT == "development" else settings.cors_origins_list
-    ),
-    allow_credentials=settings.ENVIRONMENT != "development",
+    allow_origins=["*"] if _IS_DEVELOPMENT else settings.cors_origins_list,
+    allow_credentials=not _IS_DEVELOPMENT,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -150,5 +150,5 @@ app.include_router(reportes.router)
 
 @app.get("/", response_model=HealthCheckResponse)
 async def health_check() -> HealthCheckResponse:
-    version = "0.1.0" if settings.ENVIRONMENT == "development" else "hidden"
+    version = "0.1.0" if _IS_DEVELOPMENT else "hidden"
     return HealthCheckResponse(status="ok", version=version)

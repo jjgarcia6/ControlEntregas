@@ -2,9 +2,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.config import settings
 
+_IS_DEVELOPMENT = settings.ENVIRONMENT.strip().lower() == "development"
+
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.ENVIRONMENT == "development",
+    echo=_IS_DEVELOPMENT,
 )
 
 AsyncSessionLocal: async_sessionmaker[AsyncSession] = async_sessionmaker(
