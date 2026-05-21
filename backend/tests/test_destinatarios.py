@@ -13,7 +13,7 @@ _CEDULA_INVALIDA = "1234567890"  # bad checksum
 async def _admin_token(test_client: AsyncClient) -> str:
     resp = await test_client.post(
         "/auth/login",
-        json={"email": "admin@sistema.com", "password": settings.ADMIN_PASSWORD},
+        json={"email": settings.ADMIN_EMAIL, "password": settings.ADMIN_PASSWORD},
     )
     return str(resp.json()["token"])
 

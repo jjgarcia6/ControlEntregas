@@ -14,7 +14,7 @@ from app.config import settings
 async def _admin_token(client: AsyncClient) -> str:
     resp = await client.post(
         "/auth/login",
-        json={"email": "admin@sistema.com", "password": settings.ADMIN_PASSWORD},
+        json={"email": settings.ADMIN_EMAIL, "password": settings.ADMIN_PASSWORD},
     )
     return str(resp.json()["token"])
 

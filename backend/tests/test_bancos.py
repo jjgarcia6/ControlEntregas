@@ -14,7 +14,7 @@ async def _token(test_client: AsyncClient, email: str, password: str) -> str:
 
 
 async def _admin_token(test_client: AsyncClient) -> str:
-    return await _token(test_client, "admin@sistema.com", settings.ADMIN_PASSWORD)
+    return await _token(test_client, settings.ADMIN_EMAIL, settings.ADMIN_PASSWORD)
 
 
 async def _create_operador(test_client: AsyncClient, admin_token: str) -> str:

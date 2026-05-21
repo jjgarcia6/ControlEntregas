@@ -110,7 +110,7 @@ async def _get_token(client: AsyncClient, email: str, password: str) -> str:
 
 
 async def _admin_token(client: AsyncClient) -> str:
-    return await _get_token(client, "admin@sistema.com", settings.ADMIN_PASSWORD)
+    return await _get_token(client, settings.ADMIN_EMAIL, settings.ADMIN_PASSWORD)
 
 
 async def _create_user_token(
@@ -317,7 +317,7 @@ async def test_listar_xmls_excluye_inactivos(
     xml_id = uuid.UUID(data["id"])
 
     usuario_result = await db_session.execute(
-        select(Usuario.id).where(Usuario.email == "admin@sistema.com")
+        select(Usuario.id).where(Usuario.email == settings.ADMIN_EMAIL)
     )
     usuario_id = usuario_result.scalar_one()
 

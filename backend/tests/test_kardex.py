@@ -92,7 +92,7 @@ async def _get_token(client: AsyncClient, email: str, password: str) -> str:
 
 
 async def _admin_token(client: AsyncClient) -> str:
-    return await _get_token(client, "admin@sistema.com", settings.ADMIN_PASSWORD)
+    return await _get_token(client, settings.ADMIN_EMAIL, settings.ADMIN_PASSWORD)
 
 
 async def _create_user_token(
