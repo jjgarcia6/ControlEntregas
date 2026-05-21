@@ -30,6 +30,7 @@ cd backend && pytest tests/test_fifo.py::test_name -v
 
 # Linting & type checking
 cd backend && ruff check app/ tests/
+cd backend && black --check app/ tests/   # format check; run without --check to fix
 cd backend && mypy app/
 
 # Security scan
@@ -224,6 +225,31 @@ openspec/
 
 Use `/opsx:propose`, `/opsx:explore`, `/opsx:apply`, and `/opsx:archive` slash commands to
 work within this workflow.
+
+## CI Pipeline (`.github/workflows/ci.yml`)
+
+All quality checks are **enforced** — no `|| true` suppression. A failing check blocks the pipeline.
+
+### Backend job checks (in order)
+
+1. `ruff check backend/app backend/tests` — style + unused imports
+2. `black --check backend/app backend/tests` — format compliance
+3. `mypy app` — strict type checking
+4. `bandit -r backend/app` — security scan (MEDIUM/HIGH fail the build)
+5. `pytest -q` — full test suite
+
+### Frontend job checks (in order)
+
+1. `npm run lint` — ESLint
+2. `npm run typecheck` — `tsc --noEmit`
+3. `npm run build` — production build
+4. `npm test` — Vitest suite
+
+### GitHub secret required
+
+`CI_ADMIN_PASSWORD` must be set in **Settings → Secrets and variables → Actions** before the
+backend tests can authenticate as admin. The workflow falls back to `'Admin1234!'` if unset
+(for forks/PRs without secrets access), but production CI must always have the secret configured.
 
 ## Known Pending Items
 

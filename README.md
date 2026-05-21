@@ -4,8 +4,7 @@ Sistema web para el control de entregas de productos a partir de facturas electr
 
 ## Flujo principal
 
-```
-Factura XML SRI → Kardex FIFO → Entregas → Pagos
+```Factura XML SRI → Kardex FIFO → Entregas → Pagos
        ↑                                      |
        └──────── Trazabilidad bidireccional ──┘
 ```
@@ -20,7 +19,7 @@ rastreable en ambas direcciones y cuenta con auditoría inmutable de cada operac
 |:---|:---|
 | Backend | Python 3.12 · FastAPI · SQLAlchemy 2.x async · Alembic · Pydantic v2 |
 | Base de datos | PostgreSQL en Supabase (solo como PostgreSQL hosteado) |
-| Autenticación | JWT (python-jose) · bcrypt · roles (admin / operador / lectura) |
+| Autenticación | JWT (PyJWT) · bcrypt · roles (admin / operador / lectura) |
 | Reportes | WeasyPrint (PDF) · openpyxl (XLSX) · Jinja2 |
 | Frontend | React · TypeScript · Vite · React Router v7 · TanStack Query |
 | UI | Tailwind CSS v4 · shadcn/ui · Lucide React |
@@ -47,13 +46,13 @@ controlEntregas/
 │   │   │   └── exceptions.py   # Excepciones tipadas de dominio → HTTP
 │   │   └── templates/reportes/ # Plantillas Jinja2 para PDF (WeasyPrint)
 │   ├── migrations/          # Alembic — toda migración tiene upgrade + downgrade
-│   └── tests/               # 17 archivos: un test por dominio + fifo + validaciones
+│   └── tests/               # 19 archivos: un test por dominio + fifo + validaciones
 ├── frontend/                # React application
 │   └── src/
 │       ├── api/client.ts    # Axios con interceptor JWT → 401 redirige a /login
 │       ├── store/           # Zustand: authStore (sesión) · uiStore (UI)
 │       ├── routes/          # React Router v7 con ProtectedRoute + lazy loading
-│       ├── features/        # Arquitectura feature-driven (11 dominios)
+│       ├── features/        # Arquitectura feature-driven (12 dominios)
 │       │   └── [feature]/
 │       │       ├── components/  # Contenedores + presentacionales
 │       │       ├── hooks/       # Toda la lógica async y llamadas a API
@@ -82,6 +81,7 @@ controlEntregas/
 | `trazabilidad` | Navegación bidireccional XML ↔ Kardex ↔ Entrega ↔ Pago |
 | `auditoria` | Consulta y exportación del audit_log inmutable |
 | `reportes` | Reportes operativos en JSON, PDF y XLSX |
+| `dashboard` | KPIs operativos: entregas activas, saldo pendiente, XMLs pendientes, actividad reciente |
 
 ## Setup del entorno de desarrollo
 
@@ -128,9 +128,14 @@ cd frontend && npm run dev
 | Variable | Descripción |
 |:---|:---|
 | `DATABASE_URL` | `postgresql+asyncpg://user:pass@host:port/db` |
+| `TEST_DATABASE_URL` | BD separada para tests — nunca la misma que `DATABASE_URL` |
 | `JWT_SECRET_KEY` | Secret aleatorio para firmar tokens JWT |
 | `ENVIRONMENT` | `development` \| `production` |
-| `TEST_DATABASE_URL` | BD separada para tests — nunca la misma que `DATABASE_URL` |
+| `JWT_EXPIRATION_MINUTES` | Vida del access token en minutos (default: 60) |
+| `JWT_REFRESH_LEEWAY_SECONDS` | Ventana de refresh silencioso tras expirar (default: 7200) |
+| `ENCRYPTION_KEY` | Clave Fernet para cifrado de columnas PII — generar con `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
+| `ADMIN_EMAIL` | Email del usuario administrador inicial |
+| `ADMIN_PASSWORD` | Contraseña del usuario administrador inicial |
 
 **Frontend (`frontend/.env`)**
 
@@ -146,6 +151,19 @@ cd frontend && npm run dev
 - **Reversión de pago**: Restaura `saldo_pendiente` en cada entrega afectada.
 - **XML**: `clave_acceso` única; solo `ambiente=2` (producción) es aceptado.
 - **Pagos**: `SUM(monto_aplicado) == valor_total`; el monto por entrega no puede superar `saldo_pendiente`.
+
+## CI Pipeline
+
+El pipeline de GitHub Actions (`.github/workflows/ci.yml`) corre en cada push y PR a `main`.
+Todos los checks son **obligatorios** — un fallo bloquea el merge.
+
+| Job | Check |
+|:---|:---|
+| backend | `ruff check` · `black --check` · `mypy app` · `bandit -r` · `pytest -q` |
+| frontend | `npm run lint` · `npm run typecheck` · `npm run build` · `npm test` |
+
+La variable `ADMIN_PASSWORD` se lee del secret `CI_ADMIN_PASSWORD` configurado en
+**Settings → Secrets and variables → Actions** del repositorio.
 
 ## OpenSpec — Workflow de cambios
 
@@ -163,16 +181,21 @@ consolidadas por dominio viven en `openspec/specs/{domain}/spec.md`.
 
 ### Fases implementadas
 
-| Fase | Cambio | Descripción |
-|:---|:---|:---|
-| 0 | `fase-0-infraestructura-base` | FastAPI base, AuditMixin, CORS, login skeleton |
-| 1 | `fase-1-auth-usuarios-bancos-destinatarios` | JWT auth, usuarios, bancos, destinatarios |
-| 2 | `fase-2-ingreso-xml` | Parser XML SRI, validación de facturas electrónicas |
-| 3 | `fase-3-kardex` | Kardex FIFO, ingreso selectivo desde XMLs, historial |
-| 4 | `fase-4-entregas` | Entregas con consumo FIFO, reversión exacta |
-| 5 | `fase-5-pagos` | Pagos con distribución entre entregas, reversión |
-| 6 | `fase-6-trazabilidad` | Trazabilidad bidireccional + auditoría paginada |
-| 7 | `fase-7-reportes` | Reportes operativos en JSON, PDF y XLSX |
+| Cambio | Descripción |
+|:---|:---|
+| `fase-0-infraestructura-base` | FastAPI base, AuditMixin, CORS, login skeleton |
+| `fase-1-auth-usuarios-bancos-destinatarios` | JWT auth, usuarios, bancos, destinatarios |
+| `fase-2-ingreso-xml` | Parser XML SRI, validación de facturas electrónicas |
+| `fase-3-kardex` | Kardex FIFO, ingreso selectivo desde XMLs, historial |
+| `fase-4-entregas` | Entregas con consumo FIFO, reversión exacta |
+| `fase-5-pagos` | Pagos con distribución entre entregas, reversión |
+| `fase-6-trazabilidad` | Trazabilidad bidireccional + auditoría paginada |
+| `fase-7-reportes` | Reportes operativos en JSON, PDF y XLSX |
+| `fase-8-dashboard` | Dashboard con KPIs operativos (entregas, saldo, cobrado, pagos del mes) |
+| `dashboard-mejoras` | Nuevos KPIs: XMLs pendientes, últimas entregas y pagos recientes |
+| `actualizar-dependencias-jwt` | Migración de `python-jose` a `PyJWT>=2.9.0` |
+| `seguridad-api-produccion` | Security headers, OpenAPI deshabilitado en prod, logging env-aware |
+| `ci-hardening` | CI enforces quality checks (ruff, black, mypy, bandit, eslint, typecheck) sin `\|\| true`; `ADMIN_PASSWORD` como GitHub secret |
 
 Para explorar, proponer o implementar cambios usar los comandos `/opsx:explore`, `/opsx:propose`,
 `/opsx:apply` y `/opsx:archive` dentro de Claude Code.
