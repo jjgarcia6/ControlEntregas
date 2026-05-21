@@ -111,7 +111,7 @@ async def desbloquear_intentos_fallidos(
     usuario_id: uuid.UUID,
     admin_id: uuid.UUID,
     session: AsyncSession,
-) -> dict:
+) -> dict[str, Any]:
     """Elimina los intentos fallidos del email del usuario. Registra auditoría."""
     result = await session.execute(
         select(Usuario).where(Usuario.id == usuario_id, Usuario.is_active.is_(True))
