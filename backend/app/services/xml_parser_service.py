@@ -10,8 +10,6 @@ import defusedxml.ElementTree as ET
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element  # nosec B405
 
-ParseError = ET.ParseError
-
 from app.config import settings
 from app.utils.exceptions import ValidacionNegocio
 
@@ -92,7 +90,7 @@ def parsear(xml_content: str) -> XmlParseado:
 
     try:
         root = ET.fromstring(xml_content)
-    except ParseError:
+    except ET.ParseError:
         raise ValidacionNegocio("Archivo no es XML válido")
     except Exception as exc:
         # defusedxml lanza EntitiesForbidden, DTDForbidden, ExternalReferenceForbidden, etc.
